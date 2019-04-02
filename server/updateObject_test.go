@@ -168,7 +168,7 @@ func TestUpdateObject(t *testing.T) {
 
 	// Attempt to rename the folder
 	updateuri := mountPoint + "/objects/" + folder.ID + "/properties"
-	folder.Name = "Test Folder Updated " + strconv.FormatInt(time.Now().Unix(), 10)
+	folder.Name = "Test Folder Updated " + strconv.FormatInt(time.Now().UTC().Unix(), 10)
 	jsonBody, err := json.Marshal(folder)
 	if err != nil {
 		t.Logf("Unable to marshal json for request:%v", err)

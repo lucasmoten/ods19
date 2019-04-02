@@ -1,8 +1,0 @@
-# gatekeeper-specific .gitignore file
-
-# Ignore the bundled filesystem tarball created by makeimage
-fs.tgz
-
-# Ignore build folder
-build
-

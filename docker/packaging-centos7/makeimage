@@ -1,0 +1,89 @@
+#!/usr/bin/env python
+# This script has been updated to work with python 2.7 and python 3.6
+
+import os
+import platform
+import re
+import sys
+import shutil
+import subprocess
+
+from glob import glob
+
+
+PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "bitbucket.di2e.net", "dime", "object-drive-server")
+
+
+#-------------------------------------------------------------------------------
+
+def get_majorminorversion():
+    changelogverline = subprocess.check_output(['grep', '-m', '1', '## Release', 'changelog.md']).split()[2]
+    changelogverline = changelogverline.replace(b'v',b'')
+    result = changelogverline.split('.')[0] + b'.' + changelogverline.split('.')[1]
+    return result.decode('utf-8')
+
+#-------------------------------------------------------------------------------
+
+def run_dockerfile(dockerfile, image, tag="latest"):
+    """
+    Runs the docker build.
+    Args:
+        dockerfile: absolute path to Dockerfile
+        image: Image name
+        tag: Image tag. Defaults to "latest".
+    """
+    name_with_tag = image + ":" + tag
+    try:
+        build_dir = os.path.split(dockerfile)[0]
+        subprocess.check_call(
+                ['docker', 'build', '--no-cache', '-t', name_with_tag, build_dir],
+                stdout=sys.stdout, stderr=sys.stderr)
+    except subprocess.CalledProcessError:
+        raise
+
+#-------------------------------------------------------------------------------
+
+if __name__ == '__main__':
+
+    os.chdir(PROJECT_ROOT)
+    majorminorver = get_majorminorversion()
+
+    packagingcentos7_dir = os.path.join(PROJECT_ROOT, 'docker', 'packaging-centos7')
+    build_dir = os.path.join(packagingcentos7_dir, 'build')
+    if os.path.exists(build_dir):
+        shutil.rmtree(build_dir)
+
+    src = PROJECT_ROOT
+    os.chdir(src)
+    subprocess.check_call(['govendor', 'sync'])
+    go_packages = [pkg for pkg in filter(os.path.isdir, glob("*"))]
+    # get list of dirs with 'docker' ignored    
+    to_copy = []
+    for pkg in go_packages:
+        if pkg not in ['docker']:
+            to_copy.append(pkg)
+    # loop through that list and copy to build directory
+    for pkg in to_copy:
+        shutil.copytree(pkg, os.path.join(build_dir, pkg))
+    # copy changelog.md which controls version
+    changelogfile = "changelog.md"
+    shutil.copyfile(changelogfile, os.path.join(build_dir, changelogfile))
+    os.chdir(packagingcentos7_dir)
+    # Copy in custom RPM-building script for container
+    build_script = "build_package_install.py"
+    shutil.copyfile(build_script, os.path.join(build_dir, build_script))
+    # Copy in custom env.sh-replacing and service wrapper
+    wrapper = "service_wrapper.py"
+    shutil.copyfile(wrapper, os.path.join(build_dir, wrapper))
+    # Set the version
+    if platform.system().lower() == "darwin":
+        subprocess.check_call(['sed', '-i', '\'\'', '-e', 's/{0}/{1}/ '.format(re.escape('--MajorMinorVersion--'),majorminorver), os.path.join(build_dir, wrapper)])
+    else:
+        subprocess.check_call(['sed', '-i', 's/{0}/{1}/ '.format(re.escape('--MajorMinorVersion--'),majorminorver), os.path.join(build_dir, wrapper)])
+
+    
+    # Use our Dockerfile from this directory
+    dockerfile = os.path.join(packagingcentos7_dir, "Dockerfile")
+    run_dockerfile(dockerfile, "deciphernow/odriverpm-bc-centos7")
+    shutil.rmtree(build_dir)
+

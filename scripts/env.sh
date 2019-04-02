@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Please review /etc/init.d/object-drive-1.0 for default logging location if OD_LOG_LOCATION is not set
+# Please review /etc/init.d/object-drive---MajorMinorVersion-- for default logging location if OD_LOG_LOCATION is not set
 #
 
 export OD_AAC_CA=
@@ -17,8 +17,8 @@ export OD_AWS_S3_ENDPOINT=
 export OD_AWS_S3_FETCH_MB=
 export OD_AWS_SECRET_ACCESS_KEY=
 export OD_CACHE_EVICTAGE=
-export OD_CACHE_HIGHWATERMARK=
-export OD_CACHE_LOWWATERMARK=
+export OD_CACHE_HIGHTHRESHOLDPERCENT=
+export OD_CACHE_LOWTHRESHOLDPERCENT=
 export OD_CACHE_PARTITION=
 export OD_CACHE_ROOT=
 export OD_CACHE_WALKSLEEP=

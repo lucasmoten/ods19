@@ -134,9 +134,9 @@ func doTestZip(t *testing.T, objs []protocol.Object, someDataString string, dupl
 		trafficLog.Request(t, req, description)
 	}
 
-	t.Logf("Starting zip: %v", time.Now())
+	t.Logf("Starting zip: %v", time.Now().UTC())
 	res, err := client.Do(req)
-	t.Logf("Stopping zip: %v", time.Now())
+	t.Logf("Stopping zip: %v", time.Now().UTC())
 	if err != nil {
 		t.Logf("cannot get zip: %v", err)
 		t.FailNow()

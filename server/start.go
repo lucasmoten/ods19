@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/rand"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/services/aac"
 	"bitbucket.di2e.net/dime/object-drive-server/services/kafka"
 	"bitbucket.di2e.net/dime/object-drive-server/services/zookeeper"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"github.com/samuel/go-zookeeper/zk"
 	"go.uber.org/zap"
 )
@@ -42,12 +45,13 @@ func Start(conf config.AppConfiguration) error {
 
 	d, dbID, err := dao.NewDataAccessLayer(conf.DatabaseConnection, dao.WithLogger(logger))
 	if err != nil {
-		logger.Error("error configuring dao.  check environment variable settings for OD_DB_*", zap.Error(err))
+		logger.Info("error configuring dao.  check environment variable settings for OD_DB_*", zap.Error(err))
 		return err
 	}
 	if d.ReadOnly {
-		if d.SchemaVersion != dao.SchemaVersion {
-			logger.Warn(fmt.Sprintf("database schema is at version '%s' and dao expects version '%s'. operating in read only mode until the database is upgraded.", d.SchemaVersion, dao.SchemaVersion))
+		if util.ContainsAny(d.SchemaVersion, dao.SchemaVersionsSupported) {
+			//if d.SchemaVersion < dao.SchemaVersion {
+			logger.Info(fmt.Sprintf("database schema is at version '%s' and dao expects one of '%s'. operating in read only mode until the database is upgraded.", d.SchemaVersion, strings.Join(dao.SchemaVersionsSupported, ",")))
 		}
 	}
 	app.RootDAO = d
@@ -62,7 +66,7 @@ func Start(conf config.AppConfiguration) error {
 
 	configureEventQueue(app, conf.EventQueue, conf.ZK.Timeout)
 
-	err = connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
+	err = connectWithZookeeper(app, conf.ZK.AnnouncementPoint, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
 	if err != nil {
 		logger.Warn("could not register with zookeeper")
 	}
@@ -92,7 +96,8 @@ func Start(conf config.AppConfiguration) error {
 	autoscale.WatchForShutdown(app.DefaultZK, logger)
 
 	logger.Info("waiting for aac to be created")
-	app.AAC = <-aacCreated
+	aacState := <-aacCreated
+	app.AAC = aacState
 	go func() {
 		for {
 			select {
@@ -111,8 +116,8 @@ func Start(conf config.AppConfiguration) error {
 			"registering odrive AppServer with ZK",
 			zap.String("ip", conf.ZK.IP),
 			zap.String("port", conf.ZK.Port),
-			zap.String("zkBasePath", conf.ZK.BasepathOdrive),
-			zap.String("zkAddress", conf.ZK.Address),
+			zap.String("announcementPoint", conf.ZK.AnnouncementPoint),
+			zap.String("address", conf.ZK.Address),
 		)
 	}
 
@@ -227,35 +232,40 @@ func zkKeepalive(app *AppServer, conf config.AppConfiguration) {
 		select {
 		case <-t.C:
 			if app.DefaultZK != nil {
-				logger.Debug("zkKeepalive checking health")
-				children, _, err := app.DefaultZK.Conn.Children(conf.ZK.BasepathOdrive + "/https")
-				if err != nil {
-					logger.Debug("zkKeepalive health check failure looking for children at our endpoint")
-				} else {
-					if len(children) > 0 {
-						// make sure our ephemeral node exists!
-						foundOurself := false
-						for _, v := range children {
-							if v == config.NodeID {
-								foundOurself = true
-								break
+				if !app.DefaultZK.IsTerminated {
+					logger.Debug("zkKeepalive checking health")
+					children, _, err := app.DefaultZK.Conn.Children(conf.ZK.AnnouncementPoint + "/https")
+					if err != nil {
+						logger.Debug("zkKeepalive health check failure looking for children at our endpoint")
+					} else {
+						if len(children) > 0 {
+							// make sure our ephemeral node exists!
+							foundOurself := false
+							for _, v := range children {
+								if v == config.NodeID {
+									foundOurself = true
+									break
+								}
+							}
+							if foundOurself {
+								logger.Debug("zkKeepalive health check success")
+							} else {
+								if !app.DefaultZK.IsTerminated {
+									logger.Debug("zkKeepalive health check failed to find our node, reannouncing")
+									zookeeper.DoReAnnouncements(app.DefaultZK, logger)
+								}
+							}
+						} else {
+							if !app.DefaultZK.IsTerminated {
+								logger.Debug("zkKeepalive health check failure, no children, including us, at announcement path, reannouncing")
+								zookeeper.DoReAnnouncements(app.DefaultZK, logger)
 							}
 						}
-						if foundOurself {
-							logger.Debug("zkKeepalive health check success")
-						} else {
-							logger.Debug("zkKeepalive health check failed to find our node, reannouncing")
-							zookeeper.DoReAnnouncements(app.DefaultZK, logger)
-						}
-
-					} else {
-						logger.Debug("zkKeepalive health check failure, no children, including us, at announcement path, reannouncing")
-						zookeeper.DoReAnnouncements(app.DefaultZK, logger)
 					}
 				}
 			} else {
 				logger.Error("zkKeepalive saw nil pointer to ZK, attempting reconnect")
-				connectWithZookeeper(app, conf.ZK.BasepathOdrive, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
+				connectWithZookeeper(app, conf.ZK.AnnouncementPoint, conf.ZK.Address, conf.ZK.Timeout, conf.ZK.RetryDelay)
 			}
 		case <-shutdown:
 			t.Stop()
@@ -280,7 +290,6 @@ func aacKeepalive(app *AppServer, conf config.AppConfiguration) {
 				logger.Debug("aacKeepalive checking health")
 				aacAuth := auth.NewAACAuth(logger, app.AAC)
 				_, _, err := aacAuth.GetFlattenedACM(conf.AACSettings.HealthCheck)
-				//_, err := app.AAC.PopulateAndValidateAcm ValidateAcm()
 				if err != nil {
 					logger.Error("aacKeepalive health check failure", zap.Error(err))
 					aacReconnect(app, conf)
@@ -325,6 +334,9 @@ func aacReconnect(app *AppServer, conf config.AppConfiguration) {
 		logger.Error("aacReconnect: no members of path", zap.String("path", path))
 		return
 	}
+	// randomize member order
+	shuffleStringSlice(members)
+	// look at members and try to connect
 	for _, item := range members {
 		memberPath := path + "/" + item
 		ad, _, err := conn.Get(memberPath)
@@ -362,6 +374,16 @@ func aacReconnect(app *AppServer, conf config.AppConfiguration) {
 	logger.Error("aacReconnect: iterated all members of path but found no aac", zap.String("path", path))
 }
 
+func shuffleStringSlice(vals []string) {
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+	for len(vals) > 0 {
+		n := len(vals)
+		randIndex := r.Intn(n)
+		vals[n-1], vals[randIndex] = vals[randIndex], vals[n-1]
+		vals = vals[:n-1]
+	}
+}
+
 func zkTracking(app *AppServer, conf config.AppConfiguration) {
 
 	go aacKeepalive(app, conf)
@@ -369,20 +391,23 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 
 	srvConf, aacConf, zkConf := conf.ServerSettings, conf.AACSettings, conf.ZK
 
-	odriveAnnouncer := func(at string, announcements map[string]zookeeper.AnnounceData) {
-		peerMap := make(map[string]*ciphertext.PeerMapData)
-		for announcementKey, announcement := range announcements {
-			peerMap[announcementKey] = &ciphertext.PeerMapData{
-				Host:    announcement.ServiceEndpoint.Host,
-				Port:    announcement.ServiceEndpoint.Port,
-				CA:      srvConf.CAPath,
-				Cert:    srvConf.ServerCertChain,
-				CertKey: srvConf.ServerKey,
+	if strings.ToLower(os.Getenv(config.OD_PEER_ENABLED)) == "true" {
+		logger.Info("setting up announcer to check for peers")
+		odriveAnnouncer := func(at string, announcements map[string]zookeeper.AnnounceData) {
+			peerMap := make(map[string]*ciphertext.PeerMapData)
+			for announcementKey, announcement := range announcements {
+				peerMap[announcementKey] = &ciphertext.PeerMapData{
+					Host:    announcement.ServiceEndpoint.Host,
+					Port:    announcement.ServiceEndpoint.Port,
+					CA:      srvConf.CAPath,
+					Cert:    srvConf.ServerCertChain,
+					CertKey: srvConf.ServerKey,
+				}
 			}
+			ciphertext.ScheduleSetPeers(peerMap)
 		}
-		ciphertext.ScheduleSetPeers(peerMap)
+		zookeeper.TrackAnnouncement(app.DefaultZK, zkConf.AnnouncementPoint+"/https", odriveAnnouncer)
 	}
-	zookeeper.TrackAnnouncement(app.DefaultZK, zkConf.BasepathOdrive+"/https", odriveAnnouncer)
 
 	aacAnnouncer := func(_ string, announcements map[string]zookeeper.AnnounceData) {
 		if announcements == nil || len(announcements) == 0 {
@@ -457,18 +482,22 @@ func blockForRequiredServices(l *zap.Logger, conf config.AppConfiguration) {
 }
 
 func daoReadOnlyCheck(app *AppServer, dbconf config.DatabaseConfiguration) {
-
-	t := time.NewTicker(time.Duration(30 * time.Second))
+	healthCheckInterval := int(config.GetEnvOrDefaultInt(config.OD_DB_RECHECK_TIME, 30))
+	if healthCheckInterval <= 0 {
+		logger.Info("db healthcheck disabled as OD_DB_RECHECK_TIME set to <= 0")
+		return
+	}
+	t := time.NewTicker(time.Duration(time.Duration(healthCheckInterval) * time.Second))
 
 	for {
 		select {
 		case <-t.C:
-			curOpenConns := app.RootDAO.GetOpenConnections()
+			curOpenConns := app.RootDAO.GetOpenConnectionCount()
 			logger.Debug("db checking health", zap.Int("open-conns", curOpenConns))
 			maxOpenConns := int(config.GetEnvOrDefaultInt(config.OD_DB_MAXOPENCONNS, 10))
 
 			if curOpenConns >= maxOpenConns {
-				logger.Warn("db connections at peak. consider increasing OD_DB_MAXOPENCONNS", zap.Int("max-open-conns", maxOpenConns), zap.Int("cur-open-conns", curOpenConns))
+				logger.Warn("db connections at peak. consider increasing OD_DB_MAXOPENCONNS", zap.Int("maxOpenConns", maxOpenConns), zap.Int("cur-open-conns", curOpenConns))
 				logger.Info("db closing and reopening database")
 				err := app.RootDAO.GetDatabase().Close()
 				if err != nil {

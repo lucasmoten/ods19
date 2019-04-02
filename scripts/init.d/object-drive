@@ -1,0 +1,382 @@
+#!/usr/bin/env python
+# This script has been updated to work with python 2.7 and python 3.4
+
+# The init script for object-drive-server. Save to /etc/init.d
+#
+#
+# chkconfig: - 20 70
+# description: object-drive---MajorMinorVersion-- server process
+#
+#
+### BEGIN INIT INFO
+# Provides: object-drive---MajorMinorVersion--
+# Description: object-drive---MajorMinorVersion-- server process
+### END INIT INFO
+
+import sys, os, subprocess, re, time, signal, logging
+from pwd import getpwnam
+from grp import getgrnam
+from stat import *
+
+# init scripts must write a validly-named lockfile
+# set level=logging.DEBUG for more diagnostic info if something in the script isn't working
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+global logfile
+username = "object-drive"
+groupname = "services"
+service = "object-drive---MajorMinorVersion--"
+install_path = "/opt/services/object-drive---MajorMinorVersion--"
+lockfile = os.path.join(install_path, "lockfile")
+oldlockfile = "/var/lock/subsys/object-drive---MajorMinorVersion--"
+pidfile = os.path.join(install_path, "pidfile")
+static_root = os.path.join(install_path, "libs/server/static")
+templates = os.path.join(static_root, "templates")
+# Default logging location. Set OD_LOG_LOCATION in env.sh to override.
+logfile = os.path.join(install_path, "log/object-drive.log")
+envfile = os.path.join(install_path, "env.sh")
+conf = os.path.join(install_path, "object-drive.yml")
+default_ciphers = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA"
+odserver = os.path.join(install_path, "object-drive---MajorMinorVersion--")
+dbtool = os.path.join(install_path, "database")
+obfuscatetool = os.path.join(install_path, "obfuscate")
+
+def change_owner(path, uid, gid, perms):
+    """
+    Set permissions on file or dir. uid and perms must be int type, eg. 0o755.
+    Group is ignored with -1.
+    """
+    logging.debug('In change_owner for %s', path)
+    statinfo = os.stat(path)
+    puid = statinfo.st_uid
+    pgid = statinfo.st_gid
+    pmode = statinfo.st_mode
+    if uid != puid or (gid != -1 and gid != pgid):
+        os.chown(path, uid, gid)  
+    if perms != oct(pmode & 0o777):
+        os.chmod(path, perms)
+
+
+def create_dir_not_exists(path):
+    logging.debug('In create_dir_not_exists for %s', path)
+    if not os.path.exists(path):
+        logging.info('Creating directory: %s', path)
+        os.makedirs(path)
+
+
+def get_ciphers():
+    logging.debug('In get_ciphers')
+    return os.getenv("OD_SERVER_CIPHERS", os.getenv("OD_CIPHERS", default_ciphers))
+
+def lock():
+    logging.debug('In lock')
+    if not locked():
+        open(lockfile, 'w').close()
+    else:
+        pid = get_my_pid()
+        if pid < 0:
+            # process not running and no pidfile
+            return 0
+        else:
+            if is_process_running(pid):
+                logging.warning('Service %s is already running', service)
+                os.exit(1)
+            else:
+                if os.path.exists(pidfile):
+                    logging.warning('Removing stale pidfile')
+                    removepidfile()
+
+def locked():
+    logging.debug('In locked')
+    if os.path.exists(lockfile):
+        logging.debug('- lockfile found')
+        return True
+    if os.path.exists(oldlockfile):
+        logging.debug('- lockfile found in old location')
+        return True
+    logging.debug('- no lockfile')
+    return False
+
+
+def touch_file(path):
+    logging.debug('In touch_file for %s', path)
+    if not os.path.exists(path):
+        f = open(path, "w")
+        f.close()
+
+def unlock():
+    logging.debug('In unlock')
+    if os.path.exists(lockfile):
+        os.remove(lockfile)
+    else:
+        # Remove any older if exists
+        if os.path.exists(oldlockfile):
+            os.remove(oldlockfile)
+
+def start():
+    logging.debug('In start')
+    if not os.getenv("OD_CACHE_ROOT"):
+        os.environ["OD_CACHE_ROOT"] = os.path.join(install_path, "cache")
+    removepidfile()
+
+    # Get uid of user account.
+    uid = getpwnam(username).pw_uid
+    # Get gid of group account.
+    gid = getgrnam(groupname).gr_gid
+
+    # Capture root's environment in dictionary. Pass to Popen.
+    env_for_proc = dict()
+    for k in os.environ.keys():
+        env_for_proc[k] = os.getenv(k, "")
+
+    # Change ownership of logging directory and file, if the file exists.
+    logging_dir = os.path.split(logfile)[0]
+    create_dir_not_exists(logging_dir)
+    change_owner(logging_dir, uid, gid, 0o750)
+    if os.path.exists(logfile):
+        change_owner(logfile, uid, gid, 0o640)
+
+    # Change ownership of cache dir and its contents.
+    cache_dir = os.path.split(os.getenv("OD_CACHE_ROOT"))[0]
+    if not is_absolute_path(cache_dir):
+        logging.error('Cache root location (OD_CACHE_ROOT) must be absolute path')
+        os.exit(1)
+    create_dir_not_exists(cache_dir)
+    os.chown(cache_dir, uid, gid)
+    for root, dirs, files in os.walk(cache_dir):
+        for d in dirs:
+            change_owner(os.path.join(root, d), uid, gid, 0o750)
+        for n in files:
+            change_owner(os.path.join(root, n), uid, gid, 0o640)
+    
+    # Change ownership of certificates if exists, and beneath the base path
+    if os.getenv("OD_CERTPATH"):
+        certpath = os.getenv("OD_CERTPATH")
+        if not is_absolute_path(certpath):
+            logging.error('Certificate path location (OD_CERTPATH) must be absolute path')
+            os.exit(1)
+        if os.path.exists(certpath):
+            if os.getenv("OD_BASEPATH"):
+                basepath = os.getenv("OD_BASEPATH")
+                if not is_absolute_path(basepath):
+                    logging.error('Base path location (OD_BASEPATH) must be absolute path')
+                    os.exit(1)
+                if os.path.exists(basepath):
+                    if certpath.startswith(basepath):
+                        for root, dirs, files in os.walk(certpath):
+                            for d in dirs:
+                                change_owner(os.path.join(root, d), uid, gid, 0o750)
+                            for n in files:
+                                change_owner(os.path.join(root, n), uid, gid, 0o640)
+
+    # Change ownership of pidfile. 
+    touch_file(pidfile)
+    change_owner(pidfile, uid, gid, 0o640)
+
+    # Change permissions on executables
+    change_owner(odserver, uid, gid, 0o750)
+    change_owner(dbtool, uid, gid, 0o750)
+    change_owner(obfuscatetool, uid, gid, 0o750)
+
+    # Change permissions on configuration file so uid/gid for process can read
+    change_owner(conf, uid, gid, 0o640)
+
+    # Change the user for the currently executing script, e.g. "su down". 
+    os.setgid(gid)
+    os.setuid(uid)
+
+    logging.info('Starting %s', service)
+    f = open(logfile, "a")
+    # base command
+    command = [odserver, '--conf', conf, '--templateDir', templates, "--staticRoot", static_root]
+    # add allowed ciphers
+    ciphers = get_ciphers()
+    cipherlist = ciphers.split(",")
+    for cipher in cipherlist:
+        command.append("--addCipher")
+        command.append(cipher)
+    try:
+        ps = subprocess.Popen(command, stdout=f, stderr=f, env=env_for_proc)
+        with open(pidfile, "w") as pf:
+            pf.write(str(ps.pid) + '\n')
+    except Exception as e:
+        print(e)
+        removepidfile()
+        unlock()
+        sys.exit(1)
+
+
+def stop():
+    logging.debug('In stop')
+    logging.info('Stopping %s', service)
+    try:
+        pid = get_my_pid()
+        if pid < 0:
+            # process not running and no pidfile
+            return 0
+        else:
+            # either pidfile or a process
+            if not is_process_running(pid):
+                # no running process, cleanup
+                if os.path.exists(pidfile):
+                    logging.warning('Removing stale pidfile')
+                    removepidfile()
+                return 0
+            else:
+                # there is a running process, kill it
+                os.kill(int(pid), signal.SIGTERM)
+                logging.info('SIGTERM sent to process. If there are files pending upload, it may take time for the process to clean up files and exit.')
+                # Sleep for same time paired to signals.go for accepting/finishing new work
+                time.sleep(5)
+                removepidfile()
+                return 0
+    except Exception as e:
+        print(e)
+        logging.error('Could not kill process')
+        sys.exit(1)
+        return 1
+
+
+def restart():
+    logging.debug('In restart')
+    r = stop()
+    if r == 0:
+        lock()
+        start()
+    else:
+        sys.exit(1)
+
+
+def status():
+    logging.debug('In status')
+    if not locked():
+        logging.info('%s is not locked or running', service)
+        return 3
+    else:
+        if not os.path.exists(pidfile):
+            logging.info('%s is not running', service)
+            return 3
+        pid = get_pid_from_pidfile(pidfile)
+        if not is_process_running(pid):
+            logging.warning('A pidfile exists but %s is not running', service)
+            logging.warning('Removing stale pidfile for %s', service)
+            removepidfile()
+            return 1
+        logging.info('%s is running (pid %s)', service, pid)
+        return 0
+
+def removepidfile():
+    logging.debug('In removepidfile')
+    if os.path.exists(pidfile):
+        os.remove(pidfile)    
+
+def get_pid_from_pidfile(path):
+    logging.debug('In get_pid_from_pidfile for %s', path)
+    with open(path, 'r') as f:
+        pid = f.readline().split('\n')[0]
+        if len(pid) > 0:
+            return pid
+        else:
+            return -1
+
+
+def get_pid_for_process():
+    logging.debug('In get_pid_from_process')
+    child = subprocess.Popen(['pgrep',service], stdout=subprocess.PIPE, shell=False)
+    results = child.communicate()
+    if len(results) > 0:
+        return results[0]
+    else:
+        return -1
+
+
+def get_my_pid():
+    logging.debug('In get_my_pid')
+    if not locked():
+        return get_pid_for_process()
+    else:
+        if not os.path.exists(pidfile):
+            return -1
+        else:
+            return get_pid_from_pidfile(pidfile)
+
+
+def is_process_running(process_id):
+    logging.debug('In is_process_running')
+    if len(process_id) == 0:
+        return False
+    try:
+        os.kill(int(process_id), 0)
+        return True
+    except OSError:
+        return False
+
+
+def is_absolute_path(path):
+    logging.debug('In is_absolute_path for %s', path)
+    return os.path.isabs(path)
+
+
+def shell_source(script):
+    source_file = open(script, "r")
+    source_dict = {}
+    prefix = "export "
+    for line in source_file:
+        if line.lower().startswith(prefix):
+            line = line[len(prefix):]
+            line_parts = line.split("=", 1)
+            line_key = line_parts[0]
+            line_value = line_parts[1].rstrip("\r\n ")
+            line_value = line_value.lstrip("\"")
+            line_value = line_value.rstrip("\"")
+            line_value = line_value.lstrip("\'")
+            line_value = line_value.rstrip("\'")
+            line_value = os.path.expandvars(line_value)
+            source_dict[line_key] = line_value
+            os.environ.update(source_dict)
+    source_file.close()
+
+
+# Script entry point.
+if __name__ == '__main__':
+    try:
+        if len(sys.argv) == 1:
+            raise ValueError
+        # Source our shell environment from env.sh file.
+        shell_source(envfile)           
+        if os.getenv("OD_LOG_LOCATION"):
+            location = os.getenv("OD_LOG_LOCATION")
+            logging.info('Using log location set by $OD_LOG_LOCATION: %s', location)
+            logfile = location
+        if not is_absolute_path(logfile):
+            logging.error('Logging location (OD_LOG_LOCATION) must be absolute path')
+            os.exit(1)            
+        create_dir_not_exists(os.path.split(logfile)[0])
+        command = str(sys.argv[1]).strip().lower()
+        if command == 'start':
+            lock()
+            start()
+            sys.exit(0)
+        elif command == 'stop':
+            stop()
+            unlock()
+            sys.exit(0)
+        elif command == 'restart' or command == 'force-reload':
+            restart()
+            sys.exit(0)
+        elif command == 'status':
+            ok = status()
+            sys.exit(ok)
+        else:
+            raise ValueError
+    except (SystemExit):
+        raise
+    except (ValueError):
+        print >> sys.stderr, "USAGE: %s [start|stop|restart|status]" % service
+        sys.exit(2)
+    except:
+        # Other errors
+        extype, value = sys.exc_info()[:2]
+        print >> sys.stderr, "ERROR: %s (%s)" % (extype, value)
+        sys.exit(1)
+
+

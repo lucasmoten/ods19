@@ -28,7 +28,7 @@ var cache = ccache.New(ccache.Configure())
 `Configure` exposes a chainable API:
 
 ```go
-var cache = ccache.New(ccache.Configure().MaxSize(1000).itemsToPrune(100))
+var cache = ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(100))
 ```
 
 The most likely configuration options to tweak are:
@@ -122,7 +122,7 @@ user := item.Value()   //will be nil if "user:4" didn't exist in the cache
 item.Release()  //can be called even if item.Value() returned nil
 ```
 
-In practive, `Release` wouldn't be called until later, at some other place in your code.
+In practice, `Release` wouldn't be called until later, at some other place in your code.
 
 There's a couple reason to use the tracking mode if other parts of your code also hold references to objects. First, if you're already going to hold a reference to these objects, there's really no reason not to have them in the cache - the memory is used up anyways.
 
@@ -150,6 +150,18 @@ cache.Delete("/users/goku", "type:xml")
 // OR
 cache.DeleteAll("/users/goku")
 ```
+
+# SecondaryCache
+
+In some cases, when using a `LayeredCache`, it may be desirable to always be acting on the secondary portion of the cache entry. This could be the case where the primary key is used as a key elsewhere in your code. The `SecondaryCache` is retrieved with:
+
+```go
+cache := ccache.Layered(ccache.Configure())
+sCache := cache.GetOrCreateSecondaryCache("/users/goku")
+sCache.Set("type:json", "{value_to_cache}", time.Minute * 5)
+```
+
+The semantics for interacting with the `SecondaryCache` are exactly the same as for a regular `Cache`. However, one difference is that `Get` will not return nil, but will return an empty 'cache' for a non-existent primary key.
 
 ## Size
 By default, items added to a cache have a size of 1. This means that if you configure `MaxSize(10000)`, you'll be able to store 10000 items in the cache.

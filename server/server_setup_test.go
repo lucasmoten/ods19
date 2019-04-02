@@ -91,13 +91,13 @@ func testSettings() {
 	}
 
 	settings := config.DiskCacheOpts{
-		Root:          root,
-		Partition:     "partition0",
-		LowWatermark:  .50,
-		HighWatermark: .75,
-		EvictAge:      300,
-		WalkSleep:     30,
-		MasterKey:     key,
+		Root:                 root,
+		Partition:            "partition0",
+		LowThresholdPercent:  .50,
+		HighThresholdPercent: .75,
+		EvictAge:             300,
+		WalkSleep:            30,
+		MasterKey:            key,
 	}
 	zone := ciphertext.S3_DEFAULT_CIPHERTEXT_CACHE
 	cache, err2 := ciphertext.NewLocalCiphertextCache(config.RootLogger, zone, settings, "dbID0")

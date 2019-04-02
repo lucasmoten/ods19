@@ -19,7 +19,7 @@ type UpdateObjectRequest struct {
 	Description string `json:"description"`
 	// RawACM is the raw ACM string that got supplied to modify this object
 	RawAcm interface{} `json:"acm"`
-	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
+	// Permission is the API 1.0.1.16+ version for providing permissions for users and groups with a resource and capability driven approach
 	Permission Permission `json:"permission,omitempty"`
 	// ContentType indicates the mime-type, and potentially the character set
 	// encoding for the object contents

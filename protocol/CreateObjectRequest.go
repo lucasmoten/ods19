@@ -26,7 +26,7 @@ type CreateObjectRequest struct {
 	// ContentSize denotes the length of the content stream for this object, in
 	// bytes
 	ContentSize int64 `json:"contentSize,omitempty"`
-	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
+	// Permission is the API 1.0.1.16+ version for providing permissions for users and groups with a resource and capability driven approach
 	Permission Permission `json:"permission,omitempty"`
 	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
 	ContainsUSPersonsData string `json:"containsUSPersonsData,omitEmpty"`

@@ -495,7 +495,7 @@ func TestListObjectsWithOCUSGOV(t *testing.T) {
 		t.Skip()
 	}
 	tester10 := 0
-	DN4TP := strconv.FormatInt(time.Now().Unix(), 10)
+	DN4TP := strconv.FormatInt(time.Now().UTC().Unix(), 10)
 	theFilename := "jira-DIMEODS-1183-" + DN4TP + ".png"
 	method := "POST"
 	uri := mountPoint + "/objects"

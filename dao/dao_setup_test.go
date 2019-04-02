@@ -40,7 +40,7 @@ func newAppConfigurationWithDefaults() config.AppConfiguration {
 	var conf config.AppConfiguration
 	projectRoot := filepath.Join(os.Getenv("GOPATH"), "src", "bitbucket.di2e.net", "dime", "object-drive-server")
 	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
-	opts := config.CommandLineOpts{
+	opts := config.ValueOpts{
 		Ciphers:           []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"},
 		Conf:              filepath.Join(projectRoot, "dao", "testfixtures", "testconf.yml"),
 		TLSMinimumVersion: "1.2",
@@ -127,7 +127,7 @@ func PopulateSnippetsForTestUser(user *models.ODUser, snippetString string) erro
 	}
 	var ptrUserAOCache *models.ODUserAOCache
 	useraocache.UserID = user.ID
-	useraocache.CacheDate.Time = time.Now()
+	useraocache.CacheDate.Time = time.Now().UTC()
 	useraocache.CacheDate.Valid = true
 	useraocache.SHA256Hash = snippetHash
 	ptrUserAOCache = &useraocache

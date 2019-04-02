@@ -532,7 +532,7 @@ func hashMD5OfFile(file *os.File) ([]byte, error) {
 }
 
 func FakeServerSettingsConfiguration() config.ServerSettingsConfiguration {
-	encryptEnabled := (strings.ToLower(getEnvWithDefault(config.OD_ENCRYPT_ENABLED, "true")) == "true")
+	encryptEnabled := (strings.ToLower(util.GetEnvWithDefault(config.OD_ENCRYPT_ENABLED, "true")) == "true")
 	return config.ServerSettingsConfiguration{
 		EncryptableFunctions: config.NewEncryptableFunctions(encryptEnabled),
 	}

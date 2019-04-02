@@ -158,7 +158,7 @@ func RegisterApplication(originalPath string, zkAddress string, zkTimeout int64)
 //TrackAnnouncement will call handler every time there is a membership changes
 // Ex:
 //      aac/2.1/thrift -> [member_00000000 -> {192.168.2.3:9999,...}]
-//      object-drive/1.0/https -> [e928923 -> {192.168.3.5:4430,...}]
+//      object-drive/0.0/https -> [e928923 -> {192.168.3.5:4430,...}]
 //
 // This will give the *full* membership for that entity, including ourselves.
 //

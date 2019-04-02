@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	"bitbucket.di2e.net/dime/object-drive-server/auth"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models/acm"
@@ -50,7 +51,7 @@ func (h AppServer) FetchUser(ctx context.Context) (*models.ODUser, error) {
 		return nil, fmt.Errorf("User created when fetching user is not in expected state")
 	}
 	// Finally, add this user to this server's cache
-	h.UsersLruCache.Set(caller.DistinguishedName, *user, time.Minute*10)
+	h.UsersLruCache.Set(caller.DistinguishedName, *user, time.Duration(config.GetEnvOrDefaultInt(config.OD_USERAOCACHE_LRU_TIME, 600))*time.Second)
 
 	return user, nil
 }
@@ -102,7 +103,7 @@ func getOrCreateUser(dao dao.DAO, caller Caller) (*models.ODUser, error) {
 // call to rebuild and the current date of the cache is older then a specified
 // duration (for now hardcoded as 2 minutes)
 func (h AppServer) CheckUserAOCache(ctx context.Context) error {
-	timein := time.Now()
+	timein := time.Now().UTC()
 	logger := LoggerFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
 	dao := DAOFromContext(ctx)
@@ -117,13 +118,22 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 	user.Snippets = snippets
 	rebuild := false
 	built := false
+	fetchfromdb := true
 	var useraocache models.ODUserAOCache
 	var err error
 
 	if cacheItem := h.UserAOsLruCache.Get(caller.DistinguishedName); cacheItem != nil {
-		logger.Debug("getting user ao cache from lru memory cache")
-		useraocache = cacheItem.Value().(models.ODUserAOCache)
-	} else {
+		if cacheItem.Expired() {
+			logger.Debug("existing user ao cache from lru is expired, checking database")
+			cacheItem.Release()
+			fetchfromdb = true
+		} else {
+			logger.Debug("getting user ao cache from lru memory cache")
+			useraocache = cacheItem.Value().(models.ODUserAOCache)
+			fetchfromdb = false
+		}
+	}
+	if fetchfromdb {
 		logger.Debug("getting user ao cache from DB")
 		useraocache, err = dao.GetUserAOCacheByDistinguishedName(user)
 	}
@@ -155,13 +165,15 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 			// hash is the same, see if caching
 			if useraocache.IsCaching {
 				logger.Debug("user ao is caching")
-				// if caching and older than 2 minutes ...
-				if time.Since(useraocache.CacheDate.Time).Minutes() > 2.0 {
+				// if caching and older than configured timeout
+				if time.Since(useraocache.CacheDate.Time).Seconds() > float64(config.GetEnvOrDefaultInt(config.OD_USERAOCACHE_TIMEOUT, 40)) {
 					// something may be wrong (or else we're going to create a race condition)
-					logger.Warn("cache rebuild for user took longer then 2 minutes. Rebuilding", zap.String("dn", caller.DistinguishedName))
+					msg := fmt.Sprintf("cache rebuild for user took longer than %d seconds. Rebuilding", config.GetEnvOrDefaultInt(config.OD_USERAOCACHE_TIMEOUT, 40))
+					logger.Warn(msg, zap.String("dn", caller.DistinguishedName))
 					rebuild = true
 				} else {
-					logger.Info("cache being rebuilt for same hash but has not exceeded 2 minute", zap.String("dn", caller.DistinguishedName))
+					msg := fmt.Sprintf("cache being rebuilt for same hash but has not exceeded %d seconds", config.GetEnvOrDefaultInt(config.OD_USERAOCACHE_TIMEOUT, 40))
+					logger.Info(msg, zap.String("dn", caller.DistinguishedName))
 				}
 			} else {
 				logger.Debug("not caching, no rebuild needed")
@@ -173,7 +185,7 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 		logger.Debug("rebuilding user cache")
 		// Init
 		useraocache.UserID = user.ID
-		useraocache.CacheDate.Time = time.Now()
+		useraocache.CacheDate.Time = time.Now().UTC()
 		useraocache.CacheDate.Valid = true
 		useraocache.IsCaching = true
 		useraocache.SHA256Hash = snippetHash
@@ -188,6 +200,9 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 				return err
 			}
 			// With user attributes, add grantees (and resulting keys) for missing project/groups
+			// The dao for this is responsible for saving the grantee, as well as acm value via
+			// database trigger if not yet created, so that it can be appropriately associated to
+			// user if referenced in an acm later
 			aacAuth := auth.NewAACAuth(logger, h.AAC)
 			logger.Info("getting user attributes to base cache on")
 			userAttributes, err := aacAuth.GetAttributesForUser(caller.UserDistinguishedName)
@@ -232,16 +247,17 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 				built = true
 				go func() {
 					done := make(chan bool)
-					timeout := time.After(60 * time.Second)
+					timeout := time.After(time.Duration(config.GetEnvOrDefaultInt(config.OD_USERAOCACHE_TIMEOUT, 40)) * time.Second)
 					go dao.RebuildUserACMCache(&useraocache, user, done, "")
 
 					for {
 						select {
 						case <-timeout:
-							logger.Warn("checkuseraocache call to rebuilduseracmcache timed out")
+							logger.Warn("checkuseraocache call to rebuilduseracmcache has timed out")
 							return
 						case <-done:
 							logger.Info("asynchronous cache build completed")
+							h.UserAOsLruCache.Set(caller.DistinguishedName, useraocache, time.Duration(config.GetEnvOrDefaultInt(config.OD_USERAOCACHE_LRU_TIME, 600))*time.Second)
 							return
 						}
 					}
@@ -250,18 +266,23 @@ func (h AppServer) CheckUserAOCache(ctx context.Context) error {
 				logger.Info("building full user cache synchronously")
 				done := make(chan bool, 1)
 				dao.RebuildUserACMCache(&useraocache, user, done, "")
+				logger.Info("synchronous cache build completed")
 				built = true
 			}
 		}
 	}
 
-	logger.Debug("saving useraocache to lru memory cache")
-	h.UserAOsLruCache.Set(caller.DistinguishedName, useraocache, time.Minute*10)
+	logger.Debug("saving useraocache to lru memory cache", zap.String("user", caller.DistinguishedName), zap.Bool("iscaching", useraocache.IsCaching))
+	timetocache := time.Duration(config.GetEnvOrDefaultInt(config.OD_USERAOCACHE_LRU_TIME, 600)) * time.Second
+	if useraocache.IsCaching {
+		timetocache = time.Duration(config.GetEnvOrDefaultInt(config.OD_USERAOCACHE_TIMEOUT, 40)) * time.Second
+	}
+	h.UserAOsLruCache.Set(caller.DistinguishedName, useraocache, timetocache)
 
 	if rebuild {
 		for !built && isUserAOCacheBeingBuilt(dao, user, useraocache) {
-			if time.Since(timein).Seconds() > 40.0 {
-				return fmt.Errorf("checkuseraocache waiting for cache being built until ready timed out")
+			if time.Since(timein).Seconds() > float64(config.GetEnvOrDefaultInt(config.OD_USERAOCACHE_TIMEOUT, 40)) {
+				return fmt.Errorf("checkuseraocache waiting for cache being built until ready has timed out")
 			}
 		}
 	}
@@ -274,7 +295,7 @@ func isUserAOCacheBeingBuilt(dao dao.DAO, user models.ODUser, desired models.ODU
 	// Checked in DB because peer nodes may be servicing request due to nginx RR and need to centralize
 	minimumDelay := 50
 	maximumDelay := 200
-	randomDelay := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(maximumDelay-minimumDelay) + minimumDelay
+	randomDelay := rand.New(rand.NewSource(time.Now().UTC().UnixNano())).Intn(maximumDelay-minimumDelay) + minimumDelay
 	time.Sleep(time.Duration(randomDelay) * time.Millisecond)
 	// Now check state
 	actual, err := dao.GetUserAOCacheByDistinguishedName(user)
@@ -287,7 +308,7 @@ func isUserAOCacheBeingBuilt(dao dao.DAO, user models.ODUser, desired models.ODU
 		return false
 	}
 	// overdue
-	if time.Since(actual.CacheDate.Time).Minutes() > 2.0 {
+	if time.Since(actual.CacheDate.Time).Seconds() > float64(config.GetEnvOrDefaultInt(config.OD_USERAOCACHE_TIMEOUT, 40)) {
 		return false
 	}
 	// hash state

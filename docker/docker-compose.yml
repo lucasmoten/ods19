@@ -18,7 +18,7 @@ services:
       - zk
 
   aac:
-    image: docker-dime.di2e.net/dime/aac-service:1.2.3
+    image: docker-dime.di2e.net/backend/aac-service:1.2.6-SNAPSHOT
     tty: true
     stdin_open: true
     ports:
@@ -27,8 +27,8 @@ services:
     environment:
         - COM_DECIPHERNOW_SERVER_CONFIG_ZK_ZOOKEEPERCONNECTION=zk:2181
         - COM_DECIPHERNOW_SERVER_CONFIG_ZK_ANNOUNCEMENTPOINT=/cte/service/aac/1.2
-        - COM_DECIPHERNOW_SERVER_CONFIG_TLS_TRUSTSTORE=/opt/config/certificates/jks/truststore.jks
-        - COM_DECIPHERNOW_SERVER_CONFIG_TLS_KEYSTORE=/opt/config/certificates/jks/twlserver.jks
+        - COM_DECIPHERNOW_SERVER_CONFIG_TLS_TRUSTSTORE=/opt/services/resources/certs/truststore.jks
+        - COM_DECIPHERNOW_SERVER_CONFIG_TLS_KEYSTORE=/opt/services/resources/certs/twlserver.jks
         - COM_DECIPHERNOW_SERVER_CONFIG_THRIFT_PORT=9000
         - COM_DECIPHERNOW_SERVER_CONFIG_REDIS_FAIL_SLEEPMILLISECONDS=3000
         - COM_DECIPHERNOW_SERVER_CONFIG_REDIS_FAIL_LOGRETRYCOUNT=60
@@ -49,7 +49,7 @@ services:
 
   cte-user-service:
     hostname: cte-user-service
-    image: docker.363-283.io/chimera/user-service:1.0.1-SNAPSHOT
+    image: docker-dime.di2e.net/dime/user-service:1.0.1-SNAPSHOT
     environment:
         - ELASTICSEARCH_HOST=es
         - ZK_HOST=zk
@@ -65,7 +65,7 @@ services:
       - postgres      
 
   metadatadb:
-    image: docker-dime.di2e.net/dime/object-drive-metadatadb:v1.0.18b4
+    image: deciphernow/metadatadb:latest
     mem_limit: 1024m
     cpuset: "0"
     environment:
@@ -81,19 +81,22 @@ services:
 
   odrive:
     image: deciphernow/odrive-bc:latest
+    cpuset: "1,2,3,4"
     environment:
         - OD_AAC_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
         - OD_AAC_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
         - OD_AAC_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.key.pem
         - OD_AAC_CN=twl-server-generic2
         - OD_AAC_INSECURE_SKIP_VERIFY=true
+        - OD_AAC_RECHECK_TIME=30
         - OD_AWS_ACCESS_KEY_ID
+        - OD_AWS_CLOUDWATCH_INTERVAL=0
         - OD_AWS_REGION
         - OD_AWS_S3_BUCKET
         - OD_AWS_SECRET_ACCESS_KEY
-        - OD_CACHE_EVICTAGE                   # has default
-        - OD_CACHE_HIGHWATERMARK              # has default
-        - OD_CACHE_LOWWATERMARK               # has default
+        - OD_CACHE_EVICTAGE
+        - OD_CACHE_HIGHTHRESHOLDPERCENT
+        - OD_CACHE_LOWTHRESHOLDPERCENT
         - OD_CACHE_ROOT
         - OD_CACHE_WALKSLEEP
         - OD_CACHE_PARTITION
@@ -105,17 +108,19 @@ services:
         - OD_DB_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
         - OD_DB_PASSWORD=dbPassword
         - OD_DB_PORT=3306
+        - OD_DB_RECHECK_TIME=30
         - OD_DB_SCHEMA=metadatadb
         - OD_DB_USERNAME=dbuser
         - OD_ENCRYPT_ENABLED
         - OD_ENCRYPT_MASTERKEY
+        - OD_LOG_LEVEL=INFO
         - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
         - OD_SERVER_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/trust.pem
         - OD_SERVER_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.cert.pem
         - OD_SERVER_CIPHERS=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA
         - OD_SERVER_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.key.pem
-        - OD_ZK_ANNOUNCE=/cte/service/object-drive/1.0
         - OD_ZK_AAC=/cte/service/aac/1.2/thrift
+        - OD_ZK_RECHECK_TIME=30
     depends_on:
         - metadatadb
         - aac
@@ -145,6 +150,7 @@ services:
        - AAC_SERVICE_PORT=7444
        - ODRIVE_SERVICE_HOST=odrive
        - ODRIVE_SERVICE_PORT=4430
+       - ODRIVE_VERSION=1.0
        - CTE_USER_SERVICE_HOST=cte-user-service
        - CTE_USER_SERVICE_PORT=8443
     volumes:
@@ -155,7 +161,7 @@ services:
     depends_on:
        - aac
        - odrive
-    command: /bin/bash -c "env && envsubst '$$AAC_SERVICE_HOST $$AAC_SERVICE_PORT $$ODRIVE_SERVICE_HOST $$ODRIVE_SERVICE_PORT $$CTE_USER_SERVICE_HOST $$CTE_USER_SERVICE_PORT' < /tmp/docker/odrive-ui.nginx.conf.tpl > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+    command: /bin/bash -c "env && envsubst '$$AAC_SERVICE_HOST $$AAC_SERVICE_PORT $$ODRIVE_VERSION $$ODRIVE_SERVICE_HOST $$ODRIVE_SERVICE_PORT $$CTE_USER_SERVICE_HOST $$CTE_USER_SERVICE_PORT' < /tmp/docker/odrive-ui.nginx.conf.tpl > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
 
 

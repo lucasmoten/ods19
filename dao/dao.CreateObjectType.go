@@ -23,26 +23,27 @@ func (dao *DataAccessLayer) CreateObjectType(objectType *models.ODObjectType) (m
 	retryOnErrorMessageContains := []string{"Duplicate entry", "Deadlock", "Lock wait timeout exceeded"}
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		logger.Error("could not begin transaction", zap.Error(err))
+		logger.Error("dao could not begin transaction", zap.Error(err))
 		return models.ODObjectType{}, err
 	}
 	dbObjectType, err := createObjectTypeInTransaction(tx, objectType)
-	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
-		logger.Debug("restarting transaction for createObjectTypeInTransaction", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+	for retryCounter > 0 && err != nil && util.ContainsAny(err.Error(), retryOnErrorMessageContains) {
+		logger.Debug("dao restarting transaction for createObjectTypeInTransaction", zap.String("retryReason", util.FirstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.Error(err))
+			logger.Error("dao could not begin transaction", zap.Error(err))
 			return models.ODObjectType{}, err
 		}
 		dbObjectType, err = createObjectTypeInTransaction(tx, objectType)
 	}
 	if err != nil {
-		logger.Error("error in CreateObjectType", zap.Error(err))
+		logger.Error("dao error in CreateObjectType", zap.Error(err))
 		tx.Rollback()
 	} else {
+		dao.GetLogger().Debug("dao committed transaction for CreateObjectType", zap.String("typename", objectType.Name))
 		tx.Commit()
 	}
 	return dbObjectType, err

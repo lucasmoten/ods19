@@ -31,7 +31,7 @@ func attemptToStealFile(t *testing.T, filename string) {
 	upAFolder := "/" + escapedPeriod + escapedPeriod
 
 	//uri := mountPoint + "/static/" + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + "etc/passwd"
-	uri := schemeAuthority + "/static" + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + filename
+	uri := util.GetClientMountPoint() + "/static" + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + upAFolder + filename
 
 	// Request
 	req, err := http.NewRequest("GET", uri, nil)

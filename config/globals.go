@@ -105,7 +105,7 @@ func RegexEscape(str string) string {
 // GetEnvOrDefault looks up an environment variable by name.
 // If it exists, its value is returned, otherwise a passed in default value is returned
 func GetEnvOrDefault(name, defaultValue string) string {
-	envVal := os.Getenv(name)
+	envVal := strings.TrimSpace(os.Getenv(strings.TrimSpace(name)))
 	if len(envVal) == 0 {
 		return defaultValue
 	}
@@ -120,15 +120,16 @@ func GetEnvOrDefaultInt(name string, defaultValue int) int {
 }
 
 func getEnvOrDefaultIntLogged(logger *zap.Logger, name string, defaultValue int) int {
-	envVal := os.Getenv(name)
+	envVal := strings.TrimSpace(os.Getenv(strings.TrimSpace(name)))
 	if len(envVal) == 0 {
 		return defaultValue
 	}
 	i, err := strconv.Atoi(envVal)
 	if err != nil {
-		logger.Info(
+		logger.Warn(
 			"Environment variable did not parse as an int, so was given a default value",
 			zap.String("name", name),
+			zap.String("value", envVal),
 		)
 		return defaultValue
 	}

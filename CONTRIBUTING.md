@@ -36,7 +36,7 @@ The changelog is a valuable resource. It is maintained in **changelog.md**. Most
 PRs should include edits to the changelog to describe bug fixes, API changes,
 or new features added.
 
-Use these prefixes when editing the changelog.
+Use these prefixes when editing the changelog as a helpful categorization.
 
 * CFG - Configuration changes to build processes
 * DB  - A database schema change has occurred that requires migration
@@ -45,6 +45,18 @@ Use these prefixes when editing the changelog.
 * FIX - If this change contains a bugfix or security fix to an existing feature.
 * NEW - Implementation of a new feature or API operation.
 * REF - No material changes to interfaces or business logic. General code cleanup. 
+
+Additionally, the changelog.md file is the primary control of the version of the 
+service. The first line of the file that appears as follows denotes the version
+
+    
+    ## Release v0.0.0 (Unreleased or Date of Release)
+    
+Note that scripts throughout the project will read this information and determine
+the display version information as well as major minor versioning which is applied
+to any RPM package produced.  The only place where version needs to be assigned
+separately from this is within the docker-compose configuration files where an
+ODRIVE_VERSION environment variable should be set for the proxier.
 
 ## Style Guide
 

@@ -21,10 +21,9 @@ func TestAOACMPerformance(t *testing.T) {
 		t.Skip()
 	}
 
-	testTime := time.Now()
+	testTime := time.Now().UTC()
 	// The following are merely for convenience to target this manual test against a different server
-	//basehost = "https://bedrock.363-283.io"
-	//basehost = "https://chm.363-283.io"
+	//basehost = "https://meme.363-283.io"
 	var uris []string
 	uris = append(uris, "/objects")
 	uris = append(uris, "/shares")
@@ -60,7 +59,7 @@ func TestAOACMPerformance(t *testing.T) {
 					t.FailNow()
 				}
 				req.Header.Set("Content-Type", "application/json")
-				timeStart := time.Now()
+				timeStart := time.Now().UTC()
 				res, err := clients[i].Client.Do(req)
 				if err != nil {
 					t.Logf("Unable to do request: %v", err)

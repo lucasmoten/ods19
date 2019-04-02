@@ -137,13 +137,16 @@ func (as *AutoScaler) prepareForTermination(lifecycleMessage *LifecycleMessage) 
 		)
 	}
 	isChecking := true
-	//Keep testing from going into an infinite loop.
-	//It's unreasonable to wait forever in a real situation.
-	tries := 10000
+	startedTerminationRequest := time.Now()
+	tries := 30
 	for isChecking && tries > 0 {
 		tries--
 		if tries == 0 {
-			logger.Info("autoscale termination giving up")
+			logger.Warn("autoscale termination exceeded tries allowed. force exiting")
+			return 1
+		}
+		if time.Since(startedTerminationRequest).Minutes() > float64(2) {
+			logger.Warn("autoscale termination exceeded time allowed. force exiting")
 			return 1
 		}
 		//Wait for existing uploads to finish
@@ -153,15 +156,9 @@ func (as *AutoScaler) prepareForTermination(lifecycleMessage *LifecycleMessage) 
 			remainingFiles += dp.CountUploaded()
 		}
 		if remainingFiles == 0 {
-			//
-			// No more checking required, as we have evacuated files safely
-			//
 			isChecking = false
 			as.autoScalerTerminating(lifecycleMessage)
 		} else {
-			//
-			//  We are waiting for uploads into S3 to complete
-			//
 			as.waitingToTerminate(lifecycleMessage, remainingFiles)
 		}
 	}

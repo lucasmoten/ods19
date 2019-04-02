@@ -1,6 +1,6 @@
 FORMAT: 1A
 
-# Object Drive 1.0 
+# Object Drive
 
 <table style="width:100%;border:0px;padding:0px;border-spacing:0;border-collapse:collapse;font-family:Helvetica;font-size:10pt;vertical-align:center;"><tbody><tr><td style="padding:0px;font-size:10pt;">Version</td><td style="padding:0px;font-size:10pt;">--Version--</td><td style="width:20%;font-size:8pt;"> </td><td style="padding:0px;font-size:10pt;">Build</td><td style="padding:0px;font-size:10pt;">--BuildNumber--</td><td style="width:20%;font-size:8pt;"></td><td style="padding:0px;font-size:10pt;">Date</td><td style="padding:0px;font-size:10pt;">--BuildDate--</td></tr></tbody></table>
 
@@ -13,6 +13,7 @@ FORMAT: 1A
 + [Emitted Events documentation](events.html)
 + [Environment](environment.html)
 + [Changelog](changelog.html)
++ [BoringCrypto](boringcrypto.html)
 
 # Group RESTful API
 
@@ -102,7 +103,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
     + description (string, maxlength=10240, optional) - An optional abstract of the object's contents.
     + parentId (string, length=32, optional) - Hex encoded identifier of an object, typically a folder, into which this new object is being created as a child object. If no value is specified, then the object will be created in the root location of the user who is creating it.
     + acm (object, required) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value may be provided in either serialized string format, or nested object format.
-    + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
+    + permission (PermissionRequest, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
        * Examples for Users
          * user/{distinguishedName}/{displayName}
@@ -284,7 +285,7 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
     + description (string, maxlength=10240, optional) - An optional abstract of the object's contents.
     + parentId (string, length=32, optional) - Hex encoded identifier of an object, typically a folder, into which this new object is being created as a child object. If no value is specified, then the object will be created in the root location of the user who is creating it.
     + acm (object, required) - Access Control Model is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies.  This value may be provided in either serialized string format, or nested object format.
-    + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
+    + permission (PermissionRequest, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
        * Examples for Users
          * user/{distinguishedName}/{displayName}
@@ -412,7 +413,7 @@ This creates a new revision of the object.
     + name (string, maxlength=255, optional) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
     + description (string, maxlength=10240, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is omitted, then the description will not be changed.
     + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is omitted, then the acm will not be changed. This value may be provided in either serialized string format, or nested object format.
-    + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
+    + permission (PermissionRequest, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
        * Examples for Users
          * user/{distinguishedName}/{displayName}
@@ -484,7 +485,7 @@ When an object stream comes back, it will specify an `ETag` value.  The client s
 If the content has not been changed (ie: there is no new version for this file), then a `304 Not Modified` will be sent back instead of a stream.
 For situations where there are a lot of URLs that resolve to images, and the browser is fetching them just because it doesn't know if they changed, the speedup is going to be dramatic.
 
-![Get Object Stream](static/js/getObjectStream.png)
+![Get Object Stream](../js/getObjectStream.png)
 
 In addition to ETag, browsers may do range requesting for larger resources.  If a browser goes to get a stream, it will look at its mime type and content-length.
 The browser may decide to simply read a small amount of the file from a 200 OK response, and cut off reading the stream early (close the connection).
@@ -492,7 +493,7 @@ Then when the browser needs more bytes, it will put in a header like `Range: 234
 where the browser may again close the connection at its leisure.  When it does this, it will get a `206 Partial Content` code rather than a 200 OK.
 It is the client's use of the `Range` tag that allows the response to be 206.
 
-![Get Object Stream](static/js/etag.png)
+![Get Object Stream](../js/etag.png)
 
 + Parameters
     + objectId: `11e5e48664f5d8c789020242ac110002` (string(length=32), required) - Hex encoded identifier of the object to be retrieved.
@@ -569,7 +570,7 @@ This creates a new revision of the object.
     + name (string, maxlength=255, optional) - The new name to be given this object. It does not have to be unique. It may refer to a conventional filename and extension. If no value is provided, or this field is omitted, then the name will not be changed.
     + description (string, maxlength=10240, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is omitted, then the description will not be changed.
     + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is omitted, then the acm will not be changed.  This value may be provided in either serialized string format, or nested object format.
-    + permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
+    + permission (PermissionRequest, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
        * Examples for Users
          * user/{distinguishedName}/{displayName}
@@ -2748,7 +2749,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + description: `Description here` (string, optional) - An abstract of the object's purpose.
 + parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string.  An empty value will result in this object being created in the user's root folder.
 + acm (ACM, required) - The acm value associated with this object in object form
-+ permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
++ permission (PermissionRequest, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value should be empty.
 + contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value should be 0.
 + properties (array[PropertyCreate]) - Array of custom properties to be associated with the object.
@@ -2763,7 +2764,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + description: `Description here` (string) - An abstract of the object's purpose.
 + parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string.  An empty value will result in this object being created in the user's root folder.
 + acm (ACM, required) - The acm value associated with this object in object form
-+ permission (PermissionRequest, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
++ permission (PermissionRequest, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.
 + contentType: ` ` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value should be empty.
 + contentSize: 0 (number) - The length of the object's content stream, if present. For objects without a content stream, this value should be 0.
 + properties (array[PropertyCreate]) - Array of custom properties to be associated with the object.
@@ -2800,7 +2801,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + description: `Description here` (string) - An abstract of the object's purpose.
 + parentId: `11e5e4867a6e3d8489020242ac110002` (string, optional) - The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null.
 + acm (ACMResponse, required) - The acm value associated with this object in object form
-+ permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
++ permission (PermissionResponse, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -2857,7 +2858,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + description: `Description here` (string) - An abstract of the object's purpose.
 + parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null.
 + acm (ACMResponse, required) - The acm value associated with this object in object form
-+ permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
++ permission (PermissionResponse, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -2884,7 +2885,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + description: `Description of object here` (string) - An abstract of the object's purpose.
 + parentId: `11e5e4867a6e3d8389020242ac11aaaa` (string, optional) - The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null.
 + acm (ACMResponse, required) - The acm value associated with this object in object form
-+ permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
++ permission (PermissionResponse, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -2911,7 +2912,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + description: `Description here` (string) - An abstract of the object's purpose.
 + parentId: `11e5e4867a6e3d8389020242ac11aaaa` (string, optional) - The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null.
 + acm (ACMResponse, required) - The acm value associated with this object in object form
-+ permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
++ permission (PermissionResponse, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -2939,7 +2940,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + description: `Description here` (string) - An abstract of the object's purpose.
 + parentId: ` ` (string, optional) - The unique identifier of the objects parent hex encoded to a string. This may be used to traverse up the tree. For objects stored at the root of a user, this value will be null.
 + acm (ACMResponse, required) - The acm value associated with this object in object form
-+ permission (PermissionResponse, optional) - [1.1] The permissions associated with this object by capability and resource allowed.
++ permission (PermissionResponse, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.
 + contentType: `text` (string) - The mime-type, and potentially character set encoding for the object's content stream, if present. For objects without a content stream, this value will be null.
 + contentSize: 1511 (number) - The length of the object's content stream, if present. For objects without a content stream, this value will be 0.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
@@ -3149,7 +3150,7 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + name: `gettysburgaddress.txt` (string) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
 + description: `Description here` (string) - An abstract of the object's purpose.
 + acm (ACM, optional) - The acm value associated with this object in object form. If not provided, the current ACM on the object will be retained.
-+ permission (PermissionRequest, optional) - [1.1] The permissions to be associated with this object, replacing existing permissions.
++ permission (PermissionRequest, optional) - [1.0.1.16+] The permissions to be associated with this object, replacing existing permissions.
 + properties (array[Property]) - Array of custom properties associated with the object. New properties will be added. Properties that have the same name as existing properties will be replaced. Those with an empty value will be deleted.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.

@@ -8,7 +8,7 @@ import (
 
 // NowMS is in units of milliseconds
 func NowMS() int64 {
-	return (time.Now().UnixNano() / (1000 * 1000))
+	return (time.Now().UTC().UnixNano() / (1000 * 1000))
 }
 
 // Time a function - Defer the returned function to time from now until the defer completes

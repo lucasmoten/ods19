@@ -1,5 +1,9 @@
 #!/usr/bin/env python
+# This script has been updated to work with python 2.7 and python 3.6
+
 import os
+import platform
+import re
 import sys
 import shutil
 import subprocess
@@ -9,6 +13,15 @@ from glob import glob
 
 PROJECT_ROOT = os.path.join(os.getenv("GOPATH"), "src", "bitbucket.di2e.net", "dime", "object-drive-server")
 
+#-------------------------------------------------------------------------------
+
+def get_majorminorversion():
+    changelogverline = subprocess.check_output(['grep', '-m', '1', '## Release', 'changelog.md']).split()[2]
+    changelogverline = changelogverline.replace(b'v',b'')
+    result = changelogverline.split('.')[0] + b'.' + changelogverline.split('.')[1]
+    return result.decode('utf-8')
+
+#-------------------------------------------------------------------------------
 
 def run_dockerfile(dockerfile, image, tag="latest"):
     """
@@ -22,13 +35,17 @@ def run_dockerfile(dockerfile, image, tag="latest"):
     try:
         build_dir = os.path.split(dockerfile)[0]
         subprocess.check_call(
-                ['docker', 'build', '-t', name_with_tag, build_dir],
+                ['docker', 'build', '--no-cache', '-t', name_with_tag, build_dir],
                 stdout=sys.stdout, stderr=sys.stderr)
     except subprocess.CalledProcessError:
         raise
 
+#-------------------------------------------------------------------------------
 
 if __name__ == '__main__':
+
+    os.chdir(PROJECT_ROOT)
+    majorminorver = get_majorminorversion()
 
     packaging_dir = os.path.join(PROJECT_ROOT, 'docker', 'packaging')
     build_dir = os.path.join(packaging_dir, 'build')
@@ -47,16 +64,21 @@ if __name__ == '__main__':
     # loop through that list and copy to build directory
     for pkg in to_copy:
         shutil.copytree(pkg, os.path.join(build_dir, pkg))
-
+    # copy changelog.md which controls version
+    changelogfile = "changelog.md"
+    shutil.copyfile(changelogfile, os.path.join(build_dir, changelogfile))
     os.chdir(packaging_dir)
     # Copy in custom RPM-building script for container
-    #driver.copy("build_package_install.py", build_dir)
     build_script = "build_package_install.py"
     shutil.copyfile(build_script, os.path.join(build_dir, build_script))
     # Copy in custom env.sh-replacing and service wrapper
-    #driver.copy("service_wrapper.py", build_dir)
     wrapper = "service_wrapper.py"
     shutil.copyfile(wrapper, os.path.join(build_dir, wrapper))
+    # Set the version
+    if platform.system().lower() == "darwin":
+        subprocess.check_call(['sed', '-i', '\'\'', '-e', 's/{0}/{1}/ '.format(re.escape('--MajorMinorVersion--'),majorminorver), os.path.join(build_dir, wrapper)])
+    else:
+        subprocess.check_call(['sed', '-i', 's/{0}/{1}/ '.format(re.escape('--MajorMinorVersion--'),majorminorver), os.path.join(build_dir, wrapper)])
     
     # Use our Dockerfile from this directory
     dockerfile = os.path.join(packaging_dir, "Dockerfile")

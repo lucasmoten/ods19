@@ -385,7 +385,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 
 	d := ciphertext.FindCiphertextCacheByObject(object)
 	rName := ciphertext.FileId(object.ContentConnector.String)
-	cipherFilePathCached := d.Resolve(ciphertext.NewFileName(rName, ".cached"))
+	cipherFilePathCached := d.Resolve(ciphertext.NewFileName(rName, ciphertext.FileStateCached))
 	totalLength := object.ContentSize.Int64
 	isLocalPuller := false
 	var cipherReader io.ReadCloser

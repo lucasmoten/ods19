@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/services/audit"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
@@ -37,6 +39,13 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	captureGroups, ok := CaptureGroupsFromContext(ctx)
 	if !ok {
 		herr := NewAppError(http.StatusBadRequest, nil, "unparseable uri parameters")
+		h.publishError(gem, herr)
+		return herr
+	}
+
+	// Check if peer enabled to service this request
+	if strings.ToLower(os.Getenv(config.OD_PEER_ENABLED)) != "true" {
+		herr := NewAppError(http.StatusForbidden, nil, "Requests for ciphertext from peers is not currently authorized")
 		h.publishError(gem, herr)
 		return herr
 	}

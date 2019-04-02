@@ -104,7 +104,7 @@ func isExpungedOrAnscestorDeletedErr(obj models.ODObject) (ok bool, code int, er
 	case obj.IsExpunged:
 		return false, http.StatusGone, errors.New("object no longer exists")
 	case obj.IsAncestorDeleted:
-		return false, http.StatusConflict, errors.New("object cannot be retreived because an ancestor is deleted")
+		return false, http.StatusConflict, errors.New("object cannot be retrieved because an ancestor is deleted")
 	}
 	// NOTE the obj.IsDeleted case is not an error for getObject. Getting metadata
 	// about a trashed object with IsDeleted = true is still okay.

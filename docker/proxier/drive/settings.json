@@ -20,7 +20,7 @@
     "aacServiceEndpoint": "/services/aac/1.2",
     "acmServiceEndpoint": "/services/aac/1.2/acm",
     "additionalBannerDescription": " -- UNCLASSIFIED SYSTEM AND CONTENT - ALL CLASS MARKINGS ARE FOR TESTING PURPOSES ONLY",
-    "appServiceEndpoint": "/services/apps/1.0",
+    "appServiceEndpoint": "/services/apps/1.1",
     "appTrayDisabled": true,
     "cannedDates":["1 Week", "1 Month", "2 Months", "6 Months", "1 Year", "All Time"],
     "cannedDays":[7, 30, 60, 180, 365, 10000],
@@ -130,7 +130,7 @@
       "text/plain": "text"
     },
     "uploadBlacklist": ["exe"],
-    "objectServiceEndpoint": "/services/object-drive/1.0",
+    "objectServiceEndpoint": "/services/object-drive/--MajorMinorVersion--",
     "unauthorizedEndpoint": "/apps/unauthorized/",
     "userProfileEndpoint": "/apps/userprofile/",
     "userServiceEndpoint": "/services/userservice/1.0",

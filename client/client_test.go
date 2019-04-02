@@ -16,33 +16,17 @@ import (
 	"strings"
 
 	"bitbucket.di2e.net/dime/object-drive-server/client"
-	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/events"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
-
-func getEnvWithDefault(name string, def string) string {
-	val := os.Getenv(name)
-	if val == "" {
-		return def
-	}
-	return val
-}
 
 const ValidACMUnclassifiedFOUOSharedToTester10 = `{"banner":"UNCLASSIFIED//FOUO","classif":"U","dissem_countries":["USA"],"dissem_ctrls":["FOUO"],"f_clearance":["u"],"f_share":["cntesttester01oupeopleoudaeouchimeraou_s_governmentcus"],"portion":"U//FOUO","share":{"users":["cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"]},"version":"2.1.0"}`
-
-var schemeAuthority = fmt.Sprintf(
-	"https://%s:%s",
-	getEnvWithDefault(config.OD_EXTERNAL_HOST, "proxier"),
-	getEnvWithDefault(config.OD_EXTERNAL_PORT, "8080"),
-)
 
 // This is duplicated from server_test, so that these variables cannot
 // accidentally be used in the running server.  We can't do imports
 // of foreign test packages.
-var mountPoint = fmt.Sprintf(
-	"%s/services/object-drive/1.0",
-	schemeAuthority,
-)
+
+var mountPoint = util.GetClientMountPoint()
 
 // testDir defines the location for files used in upload/download tests.
 var testDir string
@@ -53,7 +37,7 @@ var conf = client.Config{
 	Trust:      os.Getenv("GOPATH") + "/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.trust.pem",
 	Key:        os.Getenv("GOPATH") + "/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/clients/test_0.key.pem",
 	SkipVerify: false,
-	ServerName: getEnvWithDefault("OD_PEER_CN", "twl-server-generic2"), // If you set OD_PEER_CN, then this matches it
+	ServerName: util.GetEnvWithDefault("OD_PEER_CN", "twl-server-generic2"), // If you set OD_PEER_CN, then this matches it
 	Remote:     mountPoint,
 }
 

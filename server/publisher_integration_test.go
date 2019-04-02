@@ -39,7 +39,7 @@ func TestPublishEvents(t *testing.T) {
 	published[obj.ID] = append(published[obj.ID], "delete")
 
 	// Read events asynchronously
-	appConf := config.NewAppConfiguration(config.CommandLineOpts{Conf: "../config/testfixtures/complete.yml"})
+	appConf := config.NewAppConfiguration(config.ValueOpts{Conf: "../config/testfixtures/complete.yml"})
 	topic := appConf.EventQueue.Topic
 	pc := partitionConsumerForTopic(t, []string{"kafka:9092"}, topic)
 	defer pc.Close()

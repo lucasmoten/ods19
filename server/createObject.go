@@ -60,7 +60,7 @@ func (h AppServer) createObject(ctx context.Context, w http.ResponseWriter, r *h
 		logger.Debug("creating with multipart")
 		iv := crypto.CreateIV()
 		obj.EncryptIV = iv
-		obj.ContentConnector = models.ToNullString(crypto.CreateRandomName())
+		obj.ContentConnector = models.ToNullString(ciphertext.CreateRandomName())
 
 		multipartReader, err := r.MultipartReader()
 		if err != nil {
@@ -508,8 +508,8 @@ func validateCreateObjectHeaders(r *http.Request) *AppError {
 
 func removeOrphanedFile(logger *zap.Logger, d ciphertext.CiphertextCache, contentConnector string) {
 	fileID := ciphertext.FileId(contentConnector)
-	uploadedName := ciphertext.NewFileName(fileID, ".uploaded")
-	orphanedName := ciphertext.NewFileName(fileID, ".orphaned")
+	uploadedName := ciphertext.NewFileName(fileID, ciphertext.FileStateUploaded)
+	orphanedName := ciphertext.NewFileName(fileID, ciphertext.FileStateOrphaned)
 	var err error
 	if _, err := d.Files().Stat(d.Resolve(uploadedName)); os.IsNotExist(err) {
 		logger.Debug("file sent was not stored locally, no need to remove or rename")

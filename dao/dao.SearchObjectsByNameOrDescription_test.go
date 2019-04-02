@@ -18,7 +18,7 @@ func TestDAOSearchObjectsByNameOrDescription(t *testing.T) {
 	}
 
 	guid, _ := util.NewGUID()
-	timeSuffix := strconv.FormatInt(time.Now().Unix(), 10) + guid
+	timeSuffix := strconv.FormatInt(time.Now().UTC().Unix(), 10) + guid
 
 	// Create object 1 and maintain reference to delete later
 	obj1 := setupObjectForDAOSearchObjectsTest("Search Object 1" + timeSuffix)
@@ -143,7 +143,7 @@ func TestDAOSearchObjectsAndOrFilter(t *testing.T) {
 	}
 
 	guid, _ := util.NewGUID()
-	timeSuffix := strconv.FormatInt(time.Now().Unix(), 10) + guid
+	timeSuffix := strconv.FormatInt(time.Now().UTC().Unix(), 10) + guid
 	baseName := "AndOrFilter" + timeSuffix
 	obj1Name := baseName + " Object 1"
 	obj2Name := baseName + " Object 2"

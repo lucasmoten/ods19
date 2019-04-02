@@ -8,8 +8,8 @@ import (
 
 	"encoding/hex"
 
+	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
 	"bitbucket.di2e.net/dime/object-drive-server/config"
-	"bitbucket.di2e.net/dime/object-drive-server/crypto"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
@@ -35,9 +35,9 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 	dao.GetLogger().Debug("dao passing  txn into createObjectInTransaction")
 	dbObject, acmCreated, err = createObjectInTransaction(tx, dao, object)
 	dao.GetLogger().Debug("dao returned txn from createObjectInTransaction")
-	dao.GetLogger().Debug("dao checking for errors from creating object")
-	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
-		dao.GetLogger().Debug("dao restarting transaction for creating object", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+	dao.GetLogger().Debug("dao checking response from creating object")
+	for retryCounter > 0 && err != nil && util.ContainsAny(err.Error(), retryOnErrorMessageContains) {
+		dao.GetLogger().Debug("dao restarting transaction for creating object", zap.String("retryReason", util.FirstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		dao.GetLogger().Debug("-- txn rollback", zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
@@ -57,6 +57,7 @@ func (dao *DataAccessLayer) CreateObject(object *models.ODObject) (models.ODObje
 		dao.GetLogger().Debug("dao rolling back txn for CreateObject")
 		tx.Rollback()
 	} else {
+		dao.GetLogger().Debug("dao committed transaction for CreateObject")
 		dao.GetLogger().Debug("dao committing txn for CreateObject")
 		tx.Commit()
 	}
@@ -153,7 +154,7 @@ func createObjectInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, object *models
 	// record. This is because the truly unique identifier is generated in the database as a non-predictive
 	// GUID.
 	if len(object.ContentConnector.String) == 0 {
-		object.ContentConnector = models.ToNullString(crypto.CreateRandomName())
+		object.ContentConnector = models.ToNullString(ciphertext.CreateRandomName())
 	}
 
 	// Normalize ACM
@@ -198,7 +199,7 @@ func createObjectInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, object *models
 		object.ContentType.String, object.ContentSize.Int64, object.ContentHash,
 		object.EncryptIV, object.ContainsUSPersonsData, object.ExemptFromFOIA, object.OwnedBy.String,
 		object.ACMID)
-	dao.GetLogger().Debug("dao checking for errors from insert to object")
+	dao.GetLogger().Debug("dao checking response from insert to object")
 	if err != nil {
 		errMsg := err.Error()
 		return dbObject, acmCreated, fmt.Errorf("createobject error executing add object statement, %s", errMsg)

@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+ODRIVE_VERSION=$(grep -m 1 '## Release' ../../changelog.md|awk '{print $3}')
+ODRIVE_VERSION_MAJOR_MINOR=$(awk '{printf "%s.%s", $1, $2}' <<< "${ODRIVE_VERSION//[^0-9]/ }")
+
 export CA='../../defaultcerts/clients/client.trust.pem'
 export CERT='../../defaultcerts/clients/test_0.cert.pem'
 export KEY='../../defaultcerts/clients/test_0.key.pem'
@@ -9,9 +12,9 @@ export KEY='../../defaultcerts/clients/test_0.key.pem'
 export UDN='cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us'
 export SDN="cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
 
-#curl --header "USER_DN: ${UDN}" --header "EXTERNAL_SYS_DN: ${SDN}" --header "SSL_CLIENT_S_DN: ${SDN}" --form 'ObjectMetadata={"typeName":"File","name":"TEST-acmwithdeclass-2019-01-28","acm":{"classif":"TS","classif_rsn":"eo","classif_dt":"2019-01-28","classif_by":"me","declass_dt":"2040-12-31","version":"2.1.0"}}' --form 'blob=@"curlupload"' --insecure --cacert ${CA} --cert ${CERT} --key ${KEY} https://meme.363-283.io/services/object-drive/1.0/objects >> /dev/null
+#curl --header "USER_DN: ${UDN}" --header "EXTERNAL_SYS_DN: ${SDN}" --header "SSL_CLIENT_S_DN: ${SDN}" --form 'ObjectMetadata={"typeName":"File","name":"TEST-acmwithdeclass-2019-01-28","acm":{"classif":"TS","classif_rsn":"eo","classif_dt":"2019-01-28","classif_by":"me","declass_dt":"2040-12-31","version":"2.1.0"}}' --form 'blob=@"curlupload"' --insecure --cacert ${CA} --cert ${CERT} --key ${KEY} https://meme.363-283.io/services/object-drive/${ODRIVE_VERSION_MAJOR_MINOR}/objects >> /dev/null
 
-curl --form 'ObjectMetadata={"typeName":"File","name":"TEST-acmwithdeclass-2019-01-28","containsUSPersonsData":"Yes","exemptFromFOIA":"Yes","properties":[{"name":"myproperty","value":"thevalue","classificationPM":"what"}],"acm":{"classif":"TS","classif_rsn":"eo","complies_with":"alphabet-soup","classif_dt":"2019-01-28","classif_by":"me","poc":"someone","deriv_from":"xyz","declass_event":"fire","version":"2.1.0"}}' --form 'blob=@"curlupload"' --insecure --cacert ${CA} --cert ${CERT} --key ${KEY} https://meme.363-283.io/services/object-drive/1.0/objects >> /dev/null
+curl --form 'ObjectMetadata={"typeName":"File","name":"TEST-acmwithdeclass-2019-01-28","containsUSPersonsData":"Yes","exemptFromFOIA":"Yes","properties":[{"name":"myproperty","value":"thevalue","classificationPM":"what"}],"acm":{"classif":"TS","classif_rsn":"eo","complies_with":"alphabet-soup","classif_dt":"2019-01-28","classif_by":"me","poc":"someone","deriv_from":"xyz","declass_event":"fire","version":"2.1.0"}}' --form 'blob=@"curlupload"' --insecure --cacert ${CA} --cert ${CERT} --key ${KEY} https://meme.363-283.io/services/object-drive/${ODRIVE_VERSION_MAJOR_MINOR}/objects >> /dev/null
 
 
 

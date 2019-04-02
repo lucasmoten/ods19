@@ -17,7 +17,7 @@ func TestDAOGetChildObjectsWithProperties(t *testing.T) {
 	}
 
 	guid, _ := util.NewGUID()
-	timeSuffix := strconv.FormatInt(time.Now().Unix(), 10) + guid
+	timeSuffix := strconv.FormatInt(time.Now().UTC().Unix(), 10) + guid
 
 	t.Logf("Create parent object")
 	var parent models.ODObject

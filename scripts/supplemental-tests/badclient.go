@@ -9,20 +9,13 @@ import (
 
 	"bitbucket.di2e.net/dime/object-drive-server/client"
 	"bitbucket.di2e.net/dime/object-drive-server/config"
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
 // adapted from http://tleyden.github.io/blog/2016/11/21/tuning-the-go-http-client-library-for-load-testing/
 
-// brought in from typical client_test.go
-var schemeAuthority = fmt.Sprintf(
-	"https://%s:%s",
-	config.GetEnvOrDefault(config.OD_EXTERNAL_HOST, "proxier"),
-	config.GetEnvOrDefault(config.OD_EXTERNAL_PORT, "8080"),
-)
-var mountPoint = fmt.Sprintf(
-	"%s/services/object-drive/1.0",
-	schemeAuthority,
-)
+var mountPoint = util.GetClientMountPoint()
+
 var conf = client.Config{
 	Cert:       os.Getenv("GOPATH") + "/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/clients/test_0.cert.pem",
 	Trust:      os.Getenv("GOPATH") + "/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.trust.pem",
@@ -38,10 +31,6 @@ func startLoadTest() {
 	var clients []*http.Client
 	var responses []*http.Response
 
-	useproxier := false
-	userdn := "cn=test tester10,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us"
-	twldn := "cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
-
 	// this block can be outside or inside the loop, if inside, add a break to bust out of the for
 	me, err := client.NewClient(conf)
 	if err != nil {
@@ -52,23 +41,13 @@ func startLoadTest() {
 	for {
 		var err error
 		var resp *http.Response
-		if useproxier {
-			resp, err = me.GetHttpClient().Get("https://localhost:8080/services/object-drive/1.0/")
-			if err != nil {
-				log.Printf("Got error hitting proxier: %v", err)
-				break
-			}
-		} else {
-			req, _ := http.NewRequest("GET", "https://localhost:4430/services/object-drive/1.0/", nil)
-			req.Header.Add("USER_DN", userdn)
-			req.Header.Add("SSL_CLIENT_S_DN", userdn)
-			req.Header.Add("EXTERNAL_SYS_DN", twldn)
-			resp, err = me.GetHttpClient().Do(req)
-			if err != nil {
-				log.Printf("Got error going direct: %v", err)
-				break
-			}
+
+		resp, err = me.GetHttpClient().Get(fmt.Sprintf("%s/", mountPoint))
+		if err != nil {
+			log.Printf("Got error hitting proxier: %v", err)
+			break
 		}
+
 		responses = append(responses, resp)
 		var buf []byte
 		resp.Body.Read(buf)

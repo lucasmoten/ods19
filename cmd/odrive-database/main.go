@@ -242,7 +242,7 @@ func buildConfig(clictx *cli.Context) (config.AppConfiguration, error) {
 			}
 		}
 		decryptEnvironmentVariables()
-		dbConf := config.NewDatabaseConfigFromEnv(fileConf, config.CommandLineOpts{})
+		dbConf := config.NewDatabaseConfigFromEnv(fileConf, config.ValueOpts{})
 		conf.DatabaseConnection = dbConf
 	} else {
 		conf = defaultConfig
@@ -723,7 +723,7 @@ func printConf(conf config.AppConfiguration) {
 	fmt.Printf("    %s: %s\n", "key", db.ClientKey)
 }
 
-// resolveHostIP returns an ip from the interfaces, preferring something other then 127.0.0.1 loopback
+// resolveHostIP returns an ip from the interfaces, preferring something other than 127.0.0.1 loopback
 // intended to support running in docker for windows setups
 func resolveHostIP() string {
 	netInterfaceAddresses, err := net.InterfaceAddrs()

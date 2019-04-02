@@ -9,7 +9,9 @@ RUN yum -y update; \
     yum -y install git; \
     yum -y install gcc; \
     yum -y install yum-plugin-ovl; \
-    yum -y install anacron;
+    yum -y install anacron; \
+    yum -y install epel-release; \
+    yum -y --disablerepo="*" --enablerepo="epel" install python34;
 
 RUN wget https://storage.googleapis.com/golang/go1.11.5.linux-amd64.tar.gz
 RUN tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz

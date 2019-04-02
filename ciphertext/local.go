@@ -3,6 +3,7 @@ package ciphertext
 import (
 	"io"
 	"os"
+	"path/filepath"
 
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
@@ -89,8 +90,8 @@ func NewLocalCiphertextCache(logger *zap.Logger, zone CiphertextCacheZone, conf 
 	//Create a permanent storage with all directories in it pre-created
 	var permanentStorage PermanentStorage
 	// This is S3 behavior - done before every insert.  Imitate it here.
-	at := conf.Root + "/permanent"
-	os.MkdirAll(at+"/"+conf.Partition+"/"+dbID, 0700)
+	at := filepath.Join(conf.Root, "permanent")
+	os.MkdirAll(filepath.Join(at, conf.Partition, dbID), 0700)
 	permanentStorage = NewPermanentStorageLocalData(at)
 	logger.Info("PermanentStorage create", zap.String("location", at))
 	d, err := NewCiphertextCacheRaw(zone, &conf, dbID, logger, permanentStorage)

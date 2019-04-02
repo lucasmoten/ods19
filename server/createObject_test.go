@@ -1245,7 +1245,7 @@ func TestCreateObjectWithPathingForGroup(t *testing.T) {
 	tester10 := 0
 
 	t.Logf("* Create a folder under root owned by group which has pathing")
-	DN4TP := strconv.FormatInt(time.Now().Unix(), 10)
+	DN4TP := strconv.FormatInt(time.Now().UTC().Unix(), 10)
 	objectwithpathingforgroup := `
 {
 	"name": "TestCreateObjectWithPathingForGroup` + DN4TP + `/and/sub/folders",
@@ -1783,7 +1783,7 @@ func TestCreateObjectsWithACMSeries(t *testing.T) {
 		shareusers = append(shareusers, fmt.Sprintf("cn=test tester%02d,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us", u))
 	}
 
-	prand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	prand := rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 	for i := 0; i < maxobjects; i++ {
 		clearance := clearances[prand.Intn(len(clearances))]
 		acm := `{"version":"2.1.0","classif":"` + clearance + `"`
@@ -1804,7 +1804,7 @@ func TestCreateObjectsWithACMSeries(t *testing.T) {
 }
 
 func acmseriesfield(fieldname string, maxvals int, valueset []string) string {
-	prand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	prand := rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 	response := `"` + fieldname + `":[`
 	r := prand.Intn(maxvals)
 	for c := 0; c < r; c++ {

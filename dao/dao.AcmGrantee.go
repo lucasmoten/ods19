@@ -93,8 +93,8 @@ func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (mo
 		return models.ODAcmGrantee{}, err
 	}
 	response, err := createAcmGranteeInTransaction(tx, dao, acmGrantee)
-	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
-		dao.GetLogger().Debug("restarting transaction for CreateAcmGrantee", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+	for retryCounter > 0 && err != nil && util.ContainsAny(err.Error(), retryOnErrorMessageContains) {
+		dao.GetLogger().Debug("dao restarting transaction for CreateAcmGrantee", zap.String("retryReason", util.FirstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
@@ -106,9 +106,10 @@ func (dao *DataAccessLayer) CreateAcmGrantee(acmGrantee models.ODAcmGrantee) (mo
 		response, err = createAcmGranteeInTransaction(tx, dao, acmGrantee)
 	}
 	if err != nil {
-		dao.GetLogger().Error("error in createacmgrantee", zap.Error(err))
+		dao.GetLogger().Error("dao error in createacmgrantee", zap.Error(err))
 		tx.Rollback()
 	} else {
+		dao.GetLogger().Debug("dao committed transaction for CreateAcmGrantee", zap.String("acmgrantee", acmGrantee.Grantee))
 		tx.Commit()
 	}
 	return response, err

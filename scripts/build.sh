@@ -2,8 +2,10 @@
 
 # invoked inside container
 
-if yum list installed object-drive-1.0 >/dev/null 2>&1; then
-  yum remove object-drive-1.0 -y
+export ODRIVE_VERSION_MAJOR_MINOR=$(awk '{printf "%s.%s", $1, $2}' <<< "${ODRIVE_VERSION//[^0-9]/ }")
+
+if yum list installed object-drive-${ODRIVE_VERSION_MAJOR_MINOR} >/dev/null 2>&1; then
+  yum remove object-drive-${ODRIVE_VERSION_MAJOR_MINOR} -y
 fi
 
 rm -rf ~/rpmbuild
@@ -30,7 +32,7 @@ export ODRIVE_BUILDDATE=$(date +%Y%m%d)
 
 echo "invoking prepare-rpm-env.sh"
 ${ODRIVE_ROOT}/scripts/prepare-rpm-env.sh
-cp ~/rpmbuild/RPMS/x86_64/object-drive-1.0-${ODRIVE_VERSION}-${ODRIVE_BUILDNUM}.${ODRIVE_BUILDDATE}.x86_64.rpm ${ODRIVE_ROOT}
+cp ~/rpmbuild/RPMS/x86_64/object-drive-${ODRIVE_VERSION_MAJOR_MINOR}-${ODRIVE_VERSION}-${ODRIVE_BUILDNUM}.${ODRIVE_BUILDDATE}.x86_64.rpm ${ODRIVE_ROOT}
 
 cd ${ODRIVE_ROOT}
 #chown nobody:nogroup *.rpm

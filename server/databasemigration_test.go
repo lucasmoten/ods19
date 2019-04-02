@@ -159,7 +159,9 @@ func TestDBSchemaVersionReadOnly(t *testing.T) {
 
 	t.Logf("Set schema version to unexpected")
 	nanotime := strconv.Itoa(time.Now().UTC().Nanosecond())
-	setSchemaVersion(t, d, fmt.Sprintf("%s-x%s", dao.SchemaVersion, nanotime))
+	newSchemaVersion := fmt.Sprintf("0.x%s-%s", nanotime, strings.Join(strings.Split(dao.SchemaVersionsSupported[0], ""), "."))
+	t.Logf("New schema version will be %s", newSchemaVersion)
+	setSchemaVersion(t, d, newSchemaVersion)
 
 	t.Logf("Wait for server to detect the change")
 	time.Sleep(30 * time.Second)
@@ -178,7 +180,7 @@ func TestDBSchemaVersionReadOnly(t *testing.T) {
 	}
 
 	t.Logf("Restore schema version back as other tests depend on write access")
-	setSchemaVersion(t, d, dao.SchemaVersion)
+	setSchemaVersion(t, d, dao.SchemaVersionsSupported[0])
 
 	t.Logf("Wait for server to detect the change")
 	time.Sleep(30 * time.Second)
@@ -322,7 +324,7 @@ func newAppConfigurationWithDefaults() config.AppConfiguration {
 	var conf config.AppConfiguration
 	projectRoot := filepath.Join(os.Getenv("GOPATH"), "src", "bitbucket.di2e.net", "dime", "object-drive-server")
 	whitelist := []string{"cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"}
-	opts := config.CommandLineOpts{
+	opts := config.ValueOpts{
 		Ciphers:           []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"},
 		Conf:              filepath.Join(projectRoot, "dao", "testfixtures", "testconf.yml"),
 		TLSMinimumVersion: "1.2",

@@ -1,0 +1,46 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ODRIVE_VERSION=$(grep -m 1 '## Release' ../../changelog.md|awk '{print $3}')
+ODRIVE_VERSION_MAJOR_MINOR=$(awk '{printf "%s.%s", $1, $2}' <<< "${ODRIVE_VERSION//[^0-9]/ }")
+
+export CA='../../defaultcerts/clients/client.trust.pem'
+export CERT='../../defaultcerts/clients/test_9.cert.pem'
+export KEY='../../defaultcerts/clients/test_9.key.pem'
+
+export UDN='cn=test tester09,ou=people,ou=dae,ou=chimera,o=u.s. government,c=us'
+export SDN="cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us"
+
+if [ -e acmlist.txt ]
+then
+    echo "using acmlist.txt"
+else
+    echo "extracting acmlist.txt from acmlist.zip"
+    unzip -o acmlist.zip
+fi
+
+COUNTER=0
+USER=0
+DTFMT="20190319"
+while true; do
+  # IFS='' (or IFS=) prevents leading/trailing whitespace from being trimmed
+  # -r               prevents backslash escapes from being interpreted
+  # [ -n "$p" ]      prevents last line from being ignored if doesnt end with \n
+  while IFS="" read -r p || [ -n "$p" ]
+  do
+    let COUNTER=COUNTER+1 
+    # not sure why, but began having issues using test_0 here, so randomizing between users 1-9, and doing 10 in browser
+    let USER=$(shuf -i1-9 -n1 --random-source=/dev/urandom)
+    export CERT="../../defaultcerts/clients/test_${USER}.cert.pem"
+    export KEY="../../defaultcerts/clients/test_${USER}.key.pem"
+    DTFMT=$(date '+%Y/%m/%d/%H/%M')
+    echo "$COUNTER. As user ${USER} (${CERT},${KEY}), creating file with ACM: $p"
+    # use this line to hide service response
+    curl --silent --form 'ObjectMetadata={"typeName":"File","name":"ACMGEN-'${DTFMT}'/'${COUNTER}'","namePathDelimiter":"/","acm":'"${p}"'}' --form 'blob=@"../../server/static/images/odrive-service.png"' --insecure --cacert ${CA} --cert ${CERT} --key ${KEY} https://localhost:8080/services/object-drive/${ODRIVE_VERSION_MAJOR_MINOR}/objects >> /dev/null
+    # use this line to show service response in output
+    #curl --silent --form 'ObjectMetadata={"typeName":"File","name":"ACMGEN-'${DTFMT}'/'${COUNTER}'","namePathDelimiter":"/","acm":'"${p}"'}' --form 'blob=@"../../server/static/images/odrive-service.png"' --insecure --cacert ${CA} --cert ${CERT} --key ${KEY} https://localhost:8080/services/object-drive/${ODRIVE_VERSION_MAJOR_MINOR}/objects
+    echo "$COUNTER created."
+  done < acmlist.txt  
+done
+

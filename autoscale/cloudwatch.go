@@ -3,6 +3,7 @@ package autoscale
 import (
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"runtime"
 	"strconv"
@@ -42,6 +43,10 @@ type CloudWatchGeneralStats struct {
 	MemKB          *float64
 	MemPct         *float64
 	Load           *float64
+	IntervalMillis *int64
+	IntervalLast   *int64
+	IntervalNext   *int64
+	SysMem         *float64
 }
 
 //CloudWatchDump shows the latest thing sent to CloudWatch
@@ -52,24 +57,35 @@ func CloudWatchDump(w io.Writer) {
 	cwAccumulatorMutex.Unlock()
 	//We do NOT want to do periodic logging of successful CloudWatch sends, or it will fill the logs with noise and make them large when nothing interesting is happening.
 	//So, let us look at such stats here.
+	if renderedStats.IntervalMillis != nil {
+		fmt.Fprintf(w, "\t\"statssnapshot/interval_in_seconds\": %f,\n", float64(float64(*renderedStats.IntervalMillis)/float64(1000)))
+		timeLastMSDuration := util.NowMS() - *renderedStats.IntervalLast
+		fmt.Fprintf(w, "\t\"statssnapshot/interval_last\": \"%s\",\n", time.Now().Add(time.Duration(-1*timeLastMSDuration)*time.Millisecond).UTC().Format(time.RFC3339Nano))
+		timeNextMSDuration := *renderedStats.IntervalNext - util.NowMS()
+		fmt.Fprintf(w, "\t\"statssnapshot/interval_next\": \"%s\",\n", time.Now().Add(time.Duration(timeNextMSDuration)*time.Millisecond).UTC().Format(time.RFC3339Nano))
+	}
 	if renderedStats.CPUUtilization != nil {
-		fmt.Fprintf(w, "\t\"cpu_utilization_pct\": %f,\n", *renderedStats.CPUUtilization)
-	}
-	if renderedStats.Throughput != nil {
-		fmt.Fprintf(w, "\t\"throughput_kb\": %f,\n", *renderedStats.Throughput)
-	}
-	if renderedStats.Latency != nil {
-		fmt.Fprintf(w, "\t\"latency_ms\": %f,\n", *renderedStats.Latency)
+		if !math.IsNaN(*renderedStats.CPUUtilization) {
+			fmt.Fprintf(w, "\t\"statssnapshot/container/cpu_utilization_pct\": %f,\n", *renderedStats.CPUUtilization)
+		}
 	}
 	if renderedStats.Load != nil {
-		fmt.Fprintf(w, "\t\"load_processes\": %f,\n", *renderedStats.Load)
+		fmt.Fprintf(w, "\t\"statssnapshot/container/cpu_5min_loadavg\": %f,\n", *renderedStats.Load)
+		fmt.Fprintf(w, "\t\"statssnapshot/container/cpu_count\": %d,\n", runtime.NumCPU())
 	}
 	if renderedStats.MemKB != nil {
-		fmt.Fprintf(w, "\t\"mem_used_kb\": %f,\n", *renderedStats.MemKB)
+		fmt.Fprintf(w, "\t\"statssnapshot/process/mem_heap_used_kb\": %9.f,\n", *renderedStats.MemKB)
 	}
-	if renderedStats.MemPct != nil {
-		fmt.Fprintf(w, "\t\"mem_used_pct\": %f,\n", *renderedStats.MemPct)
+	if renderedStats.SysMem != nil {
+		fmt.Fprintf(w, "\t\"statssnapshot/process/mem_from_os_kb\": %9.f,\n", *renderedStats.SysMem)
 	}
+	// 20190402 - Commenting these out because its way wrong in implementation, assuming success and instant transfers
+	// if renderedStats.Throughput != nil {
+	// 	fmt.Fprintf(w, "\t\"statssnapshot/process/throughput_kb\": %f,\n", *renderedStats.Throughput)
+	// }
+	// if renderedStats.Latency != nil {
+	// 	fmt.Fprintf(w, "\t\"statssnapshot/process/latency_ms\": %f,\n", *renderedStats.Latency)
+	// }
 }
 
 // CloudWatchTransaction wraps CloudWatchTransactionRaw with start/stop and bytes
@@ -154,7 +170,7 @@ func GetLoadAvgStat(logger *zap.Logger) *LoadAvgStat {
 		return nil
 	}
 	bufferString := string(buffer[:count])
-	logger.Debug("cloudwatch parsing loadavg", zap.String("raw", bufferString))
+	logger.Debug("stats interval parsing loadavg", zap.String("raw", bufferString))
 	tokens := strings.Split(bufferString, " ")
 
 	returnValue := &LoadAvgStat{}
@@ -165,6 +181,7 @@ func GetLoadAvgStat(logger *zap.Logger) *LoadAvgStat {
 	returnValue.RunningProcesses, err = strconv.Atoi(procRatio[0])
 	returnValue.TotalProcesses, err = strconv.Atoi(procRatio[1])
 	returnValue.LastPid, err = strconv.Atoi(tokens[4])
+
 	return returnValue
 }
 
@@ -176,7 +193,7 @@ func cpuTimeFromStat(s *linuxproc.Stat, i int) int64 {
 }
 
 func idleTimeFromStat(s *linuxproc.Stat, i int) int64 {
-	return int64(s.CPUStats[i].Idle) + int64(s.CPUStats[i].IOWait)
+	return int64(s.CPUStats[i].Idle) //+ int64(s.CPUStats[i].IOWait) // 20190402 removed IOWait as its a subset of Idle
 }
 
 // Interpret the parsed output of /proc/stat
@@ -226,6 +243,9 @@ func ComputeOverallPerformance(
 	requests := cwAccumulator.RecentRequestCount
 
 	if millis > 0 {
+		cwStats.IntervalMillis = aws.Int64(millis)
+		cwStats.IntervalLast = aws.Int64(util.NowMS())
+		cwStats.IntervalNext = aws.Int64(*cwStats.IntervalLast + millis)
 		cwStats.Throughput = aws.Float64(float64(bytes) / float64(millis))
 	}
 
@@ -237,6 +257,7 @@ func ComputeOverallPerformance(
 
 	cwStats.MemKB = aws.Float64(float64(mem.Alloc) / 1024)
 	cwStats.MemPct = aws.Float64(100.0 * float64(mem.Alloc) / float64(mem.TotalAlloc))
+	cwStats.SysMem = aws.Float64(float64(mem.Sys) / 1024)
 
 	//Just take the 5min value from proc (note that we *also* have a 5min polling interval by default)
 	cwStats.Load = aws.Float64(loadStat.CPU5Min)
@@ -256,8 +277,21 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 	//Get a session in which to work in a goroutine
 	logger := config.RootLogger.With(zap.String("session", "cloudwatch"))
 
-	//Try to get a real cloudwatch session.  If not, just log this data locally.
+	//Try to get a real cloudwatch session.  If not, just log this data locally if enabled
 	cwConfig := config.NewCWConfig()
+	if cwConfig.SleepTimeInSeconds <= 0 {
+		logger.Info("metrics reporting to cloudwatch disabled as OD_AWS_CLOUDWATCH_INTERVAL set to <= 0")
+		// But compute performance to be able to report in stats
+		go func() {
+			prevStat := GetProcStat(logger)
+			for {
+				CloudWatchStartInterval(tracker, util.NowMS())
+				time.Sleep(time.Duration(30) * time.Second)
+				_, prevStat = ComputeOverallPerformance(prevStat, GetProcStat(logger), GetLoadAvgStat(logger), util.NowMS())
+			}
+		}()
+		return
+	}
 	var cwSession *cloudwatch.CloudWatch
 	var namespace *string
 
@@ -271,9 +305,9 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 		if cwSession == nil {
 			logger.Warn("cloudwatch txn fail on null session")
 		}
+		logger.Info("cloudwatch monitoring started", zap.String("implementation", *namespace))
 	}
 
-	logger.Info("cloudwatch monitoring started", zap.String("implementation", *namespace))
 	var dims []*cloudwatch.Dimension
 	dims = append(dims, &cloudwatch.Dimension{Name: aws.String("Service Name"), Value: aws.String("odrive")})
 
@@ -292,7 +326,7 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 			//Report metrics in the format that our cloudwatch setup is expecting
 
 			var metricDatum []*cloudwatch.MetricDatum
-			now := aws.Time(time.Now())
+			now := aws.Time(time.Now().UTC())
 			if cwStats.Latency != nil {
 				//Note: this is *not* 90th percentile latency.  It's just a simple latency over the last 5min interval.
 				//We are computing this latency using these (with units):

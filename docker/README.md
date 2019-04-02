@@ -1,4 +1,71 @@
 
+# Docker-Compose Configuration Files
+
+This folder contains different docker compose configuration files
+
+The images referenced for Object Drive are assumed to have been built by the developer by first running the following in the root of the project.
+
+```
+cd $GOPATH/src/bitbucket.di2e.net/dime/object-drive-server
+./odb --clean --build
+```
+
+## docker-compose.yml
+
+This is the default file that will be used if not specifying any of the other files.  It will bring up a basic stack suitable for also using the Drive UI application, but without full indexing and search support.
+
+This will use the latest tagged images for odrive-bc and metadatadb. These are snapshot images that you the developer will have available from running the `odb` command above.
+
+To start
+```
+docker-compose up -d
+```
+
+After starting, you can install the Drive UI
+```
+./installui
+```
+
+To stop and remove containers
+```
+docker-compose kill && docker-compose rm -f
+```
+
+## fullstack-docker-compose.yml
+
+This configuration file can be used to bring up a full object drive environment with kafka, an indexer, elastic search, user service and more to support all functionality when installing the Drive UI
+
+This will use the latest tagged images for odrive-bc and metadatadb. These are snapshot images that you the developer will have available from running the `odb` command above.
+
+To start
+```
+docker-compose -f fullstack-docker-compose.yml up -d
+```
+
+After starting, you can install the Drive UI
+```
+./installui
+```
+
+To stop and remove containers
+```
+docker-compose -f fullstack-docker-compose.yml kill && docker-compose -f fullstack-docker-compose.yml rm -f
+```
+
+## minimal-docker-compose.yml
+
+This configuration file is handy to provide others integrating with the Object Drive service.  All images references are tagged and retrievable from the DI2E docker repository.  It will not include the latest changes to the develop branch as it references tagged releases.  Neither the Drive UI, nor other applications will work with this unless their specific dependencies are also installed into the docker network.
+
+To start
+```
+docker-compose -f minimal-docker-compose.yml up -d
+```
+
+To stop and remove containers
+```
+docker-compose -f minimal-docker-compose.yml kill && docker-compose -f minimal-docker-compose.yml rm -f
+```
+
 # Helpful Docker and Docker Compose commands
 
 If you want to delete all local docker images and containers, and start from a clean base, do:
@@ -15,7 +82,6 @@ even before docker-compose is used:
 
 * cleanit
 * makeimage (may depend on cleanit)
-* runimage (depends on makeimage)
 
 The top level will use these to make sure that images are build in the standard way, so that they can be launched with compose.
 

@@ -78,7 +78,7 @@ func (h AppServer) updateObjectStream(ctx context.Context, w http.ResponseWriter
 	}
 
 	// We need a name for the new text, and a new iv
-	dbObject.ContentConnector.String = crypto.CreateRandomName()
+	dbObject.ContentConnector.String = ciphertext.CreateRandomName()
 	dbObject.EncryptIV = crypto.CreateIV()
 	// Check if the user has permissions to update the ODObject
 	var grant models.ODObjectPermission

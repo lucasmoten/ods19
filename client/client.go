@@ -33,6 +33,7 @@ type ObjectDrive interface {
 	GetObject(id string) (Object, error)
 	GetObjectStream(id string) (io.ReadCloser, error)
 	GetRevisions(id string) (ObjectResultset, error)
+	GetRevisionStream(id string, changeCount int) (io.ReadCloser, error)
 	MoveObject(MoveObjectRequest) (Object, error)
 	RestoreRevision(id string, token string, changeCount int) (Object, error)
 	Search(paging PagingRequest, searchAllObjects bool) (ObjectResultset, error)
@@ -395,6 +396,31 @@ func (c *Client) GetRevisions(id string) (ObjectResultset, error) {
 	}
 
 	return ret, nil
+}
+
+// GetRevisionStream fetches the filestream associated with a specific revision of an object, if any exists.
+func (c *Client) GetRevisionStream(id string, changeCount int) (io.ReadCloser, error) {
+	fileURL := c.url + "/revisions/" + id + "/" + string(changeCount) + "/stream"
+
+	req, err := http.NewRequest("GET", fileURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.Conf.Impersonation != "" {
+		setImpersonationHeaders(req, c.Conf.Impersonation, c.MyDN)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return nil, fmt.Errorf("http status: %v", resp.StatusCode)
+	}
+
+	return resp.Body, nil
 }
 
 // MoveObject moves a given file or folder into a new parent folder, both specified by ID.
@@ -776,7 +802,7 @@ type CreateObjectRequest struct {
 	// ContentSize denotes the length of the content stream for this object, in
 	// bytes
 	ContentSize int64 `json:"contentSize,omitempty"`
-	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
+	// Permission is the API 1.0.1.16+ version for providing permissions for users and groups with a resource and capability driven approach
 	Permission Permission `json:"permission,omitempty"`
 	// ContainsUSPersonsData indicates if this object contains US Persons data (Yes,No,Unknown)
 	ContainsUSPersonsData string `json:"containsUSPersonsData,omitEmpty"`
@@ -902,7 +928,7 @@ type Object struct {
 	// This might be null.  It could have a large list of permission objects
 	// relevant to this file (ie: shared with an organization)
 	Permissions []Permission_1_0 `json:"permissions,omitempty"`
-	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
+	// Permission is the API 1.0.1.16+ version for providing permissions for users and groups with a resource and capability driven approach
 	Permission Permission `json:"permission,omitempty"`
 	// Breadcrumbs is an array of Breadcrumb that may be returned on some API calls.
 	// Clients can use breadcrumbs to display a list of parents. The top-level
@@ -1146,7 +1172,7 @@ type UpdateObjectAndStreamRequest struct {
 	Description string `json:"description"`
 	// RawACM is the raw ACM string that got supplied to modify this object
 	RawAcm interface{} `json:"acm"`
-	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
+	// Permission is the API 1.0.1.16+ version for providing permissions for users and groups with a resource and capability driven approach
 	Permission Permission `json:"permission,omitempty"`
 	// ContentType indicates the mime-type, and potentially the character set
 	// encoding for the object contents
@@ -1183,7 +1209,7 @@ type UpdateObjectRequest struct {
 	Description string `json:"description"`
 	// RawACM is the raw ACM string that got supplied to modify this object
 	RawAcm interface{} `json:"acm"`
-	// Permission is the API 1.1+ version for providing permissions for users and groups with a resource and capability driven approach
+	// Permission is the API 1.0.1.16+ version for providing permissions for users and groups with a resource and capability driven approach
 	Permission Permission `json:"permission,omitempty"`
 	// ContentType indicates the mime-type, and potentially the character set
 	// encoding for the object contents

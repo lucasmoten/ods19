@@ -39,22 +39,23 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 	retryDelay := dao.DeadlockRetryDelay
 	retryOnErrorMessageContains := []string{"Throttled", "Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
 	acmCreated, err = updateObjectInTransaction(logger, tx, dao, object)
-	for retryCounter > 0 && err != nil && containsAny(err.Error(), retryOnErrorMessageContains) {
-		logger.Debug("restarting transaction for UpdateObject", zap.String("retryReason", firstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
+	for retryCounter > 0 && err != nil && util.ContainsAny(err.Error(), retryOnErrorMessageContains) {
+		logger.Debug("dao restarting transaction for UpdateObject", zap.String("retryReason", util.FirstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
 		time.Sleep(time.Duration(retryDelay) * time.Millisecond)
 		retryCounter--
 		tx, err = dao.MetadataDB.Beginx()
 		if err != nil {
-			logger.Error("could not begin transaction", zap.Error(err))
+			logger.Error("dao could not begin transaction", zap.Error(err))
 			return err
 		}
 		acmCreated, err = updateObjectInTransaction(logger, tx, dao, object)
 	}
 	if err != nil {
-		logger.Error("error in UpdateObject", zap.Error(err))
+		logger.Error("dao error in UpdateObject", zap.Error(err))
 		tx.Rollback()
 	} else {
+		dao.GetLogger().Debug("dao committed transaction for UpdateObject")
 		tx.Commit()
 		// Calculate in background and as separate transaction...
 		if acmCreated {

@@ -3,6 +3,7 @@ package ciphertext
 import (
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
@@ -134,45 +135,45 @@ func NewFileName(rName FileId, ext string) FileName {
 
 // Chtimes touches the timestamp
 func (c CiphertextCacheFilesystemMountPoint) Chtimes(name FileNameCached, atime time.Time, mtime time.Time) error {
-	return os.Chtimes(c.Root+"/"+string(name), atime, mtime)
+	return os.Chtimes(filepath.Join(c.Root, string(name)), atime, mtime)
 }
 
 // Resolve the location relative to the mount point, which is required for debugging
 func (c CiphertextCacheFilesystemMountPoint) Resolve(fName FileNameCached) string {
-	return c.Root + "/" + string(fName)
+	return filepath.Join(c.Root, string(fName))
 }
 
 // Open wraps os.Open for use with the cache
 func (c CiphertextCacheFilesystemMountPoint) Open(fName FileNameCached) (*os.File, error) {
-	return os.Open(c.Root + "/" + string(fName))
+	return os.Open(filepath.Join(c.Root, string(fName)))
 }
 
 // Remove wraps os.Remove for use with the cache
 func (c CiphertextCacheFilesystemMountPoint) Remove(fName FileNameCached) error {
-	return os.Remove(c.Root + "/" + string(fName))
+	return os.Remove(filepath.Join(c.Root, string(fName)))
 }
 
 // Rename wraps os.Rename for use with the cache
 func (c CiphertextCacheFilesystemMountPoint) Rename(fNameSrc, fNameDst FileNameCached) error {
-	return os.Rename(c.Root+"/"+string(fNameSrc), c.Root+"/"+string(fNameDst))
+	return os.Rename(filepath.Join(c.Root, string(fNameSrc)), filepath.Join(c.Root, string(fNameDst)))
 }
 
 // Create wraps os.Create for use with the cache
 func (c CiphertextCacheFilesystemMountPoint) Create(fName FileNameCached) (*os.File, error) {
-	return os.Create(c.Root + "/" + string(fName))
+	return os.Create(filepath.Join(c.Root, string(fName)))
 }
 
 // Stat wraps os.Stat for use with the cache
 func (c CiphertextCacheFilesystemMountPoint) Stat(fName FileNameCached) (os.FileInfo, error) {
-	return os.Stat(c.Root + "/" + string(fName))
+	return os.Stat(filepath.Join(c.Root, string(fName)))
 }
 
 // MkdirAll wraps os.Mkdir for use with the cache
 func (c CiphertextCacheFilesystemMountPoint) MkdirAll(fName FileNameCached, perm os.FileMode) error {
-	return os.MkdirAll(c.Root+"/"+string(fName), perm)
+	return os.MkdirAll(filepath.Join(c.Root, string(fName)), perm)
 }
 
 // RemoveAll wraps os.RemoveAll for use with cache
 func (c CiphertextCacheFilesystemMountPoint) RemoveAll(fName FileNameCached) error {
-	return os.RemoveAll(c.Root + "/" + string(fName))
+	return os.RemoveAll(filepath.Join(c.Root, string(fName)))
 }

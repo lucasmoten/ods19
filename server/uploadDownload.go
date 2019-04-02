@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"path"
 	"strings"
-	"time"
 
 	"go.uber.org/zap"
 
@@ -253,8 +251,8 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	d := ciphertext.FindCiphertextCacheByObject(obj)
 
 	// CiphertextCacheFilesystemMountPoint.Resolve(FileName) returns a path.
-	outFileUploading := d.Resolve(ciphertext.NewFileName(fileID, ".uploading"))
-	outFileUploaded := d.Resolve(ciphertext.NewFileName(fileID, ".uploaded"))
+	outFileUploading := d.Resolve(ciphertext.NewFileName(fileID, ciphertext.FileStateUploading))
+	outFileUploaded := d.Resolve(ciphertext.NewFileName(fileID, ciphertext.FileStateUploaded))
 
 	logger.Debug("creating file to receive ciphertext as .uploading", zap.String("fileID", string(fileID)))
 	outFile, err := d.Files().Create(outFileUploading)
@@ -295,44 +293,20 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 	obj.ContentHash = checksum
 	obj.ContentSize.Int64 = length
 
-	// At the end of this function, we can mark the file as stored in S3.
-	return func() { h.Writeback(obj, fileID, length, 3) }, nil, err
+	// At successful conclusion of this writeback, the provider will have stored in S3
+	// and renamed the file to reflect the FileStateCached
+	return func() { h.Writeback(obj, fileID, length) }, nil, err
 }
 
-// Writeback wraps a WritebackAttempt with performance tracking
-func (h AppServer) Writeback(obj *models.ODObject, rName ciphertext.FileId, size int64, tries int) error {
+// Writeback wraps the drain provider Writeback with performance tracking
+func (h AppServer) Writeback(obj *models.ODObject, rName ciphertext.FileId, size int64) error {
 	beganAt := h.Tracker.BeginTime(performance.S3DrainTo)
-	err := h.WritebackAttempt(obj, rName, size, tries)
-	h.Tracker.EndTime(performance.S3DrainTo, beganAt, performance.SizeJob(size))
-	return err
-}
-
-// WritebackAttempt usues the ciphertextcache associated by an object and writes the content stream to the drain
-func (h AppServer) WritebackAttempt(obj *models.ODObject, rName ciphertext.FileId, size int64, tries int) error {
-	d := ciphertext.FindCiphertextCacheByObject(obj)
-	err := d.Writeback(rName, size)
-	tries = tries - 1
+	err := ciphertext.FindCiphertextCacheByObject(obj).Writeback(rName, size)
 	if err != nil {
-		//The problem is that we get things like transient DNS errors,
-		//after we took custody of the file.  We will need something
-		//more robust than this eventually.  We have the file, while
-		//not being uploaded if all attempts fail.
-		if tries > 0 {
-			log.Printf("unable to drain file.  Trying again:%v", err)
-			err = h.WritebackAttempt(obj, rName, size, tries)
-		} else {
-			log.Printf("unable to drain file.  Trying it in the background:%v", err)
-			//If we don't want to give up and lose the data, we have to keep trying in another goroutine to avoid blowing up the stack
-			go func() {
-				//If we are having a drain outage, then trying immediately is not going to be useful.
-				//Wait a while
-				log.Printf("waiting 30 seconds before attempting to drain again")
-				time.Sleep(30 * time.Second)
-				log.Printf("drain attempt beginning")
-				h.Writeback(obj, rName, size, 3)
-			}()
-		}
+		// if we failed, don't falsify the throughput
+		size = 0
 	}
+	h.Tracker.EndTime(performance.S3DrainTo, beganAt, performance.SizeJob(size))
 	return err
 }
 

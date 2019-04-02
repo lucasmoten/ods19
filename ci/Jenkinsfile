@@ -9,7 +9,7 @@ node('docker') {
     sh 'printenv'
     def saltEnvs = ['aws']
     def serviceName = 'object-drive'
-    def serviceVersion = '1.0'
+    def serviceVersion = 'x.x'
 
     def commit_id
     def git_tag
@@ -19,21 +19,12 @@ node('docker') {
     def version_patch
     def version_full
     def scmVars
+    def projectname = 'object-drive-server'
     def projectpath
     def govgopath
     def use_boring_crypto
     def boring_crypto_version
     def tarroot
-
-    // stage('Verify not running on FIPS enabled system') {
-    //     if(env.NODE_NAME == "jslv4-prod-gw1a.aws.di2e.net") {
-    //         sh "echo Current node is jslv4-prod-gw1a.aws.di2e.net which is believed to have FIPS enabled and will fail to upload RPM to S3."
-    //         sh "echo Not even going to do the work here since its all for not"
-    //         sh "echo If you are seeing this message, go ahead and kick off a rebuild and play roulette on which machine gets the job"
-    //         sh "echo jslv3-prod-gw1a.aws.di2e.net was a known good at one time"
-    //         error("Build failed because job ran on an environment with FIPS enabled")
-    //     }
-    // }
 
     stage('Install Tools') {
         use_boring_crypto = true
@@ -52,7 +43,7 @@ node('docker') {
             sh "mkdir -p ${GOPATH}/src/bitbucket.di2e.net/dime"
             env.PATH = "${GOPATH}/bin:${PATH}"
         }
-        projectpath = "/home/jenkins/workspace/gocode/src/bitbucket.di2e.net/dime/object-drive-server"
+        projectpath = "/home/jenkins/workspace/gocode/src/bitbucket.di2e.net/dime/${projectname}"
         tarroot = "${projectpath}/tarprep"
         script {
             env.ODRIVE_ROOT = "${projectpath}"
@@ -110,7 +101,7 @@ node('docker') {
 
         // copy into the go path so we can build it
         sh "mkdir -p ${projectpath}"
-        sh "cd ${JENKINS_HOME}/workspace/gocode/src/bitbucket.di2e.net/dime && rm -rf object-drive-server"
+        sh "cd ${JENKINS_HOME}/workspace/gocode/src/bitbucket.di2e.net/dime && rm -rf ${projectname}"
         sh "cp -r ${WORKSPACE} ${JENKINS_HOME}/workspace/gocode/src/bitbucket.di2e.net/dime/"
 
         // get commit id
@@ -149,6 +140,7 @@ node('docker') {
         } else {
             version_patch = '0'
         }
+        serviceVersion = version_major + "." + version_minor
         version_full = version_major + "." + version_minor + "." + version_patch
         version_display = version_full // effectively remove the prefix 'v' from doc rendering and docker image tags
         if (use_boring_crypto) {
@@ -188,17 +180,14 @@ node('docker') {
     stage('Package and Deployment') {
         parallel docker: {
             // Use ODB to package images. 
-            sh "cd ${projectpath} && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/odrive-bc -t unsupported-tag"
-            sh "cd ${projectpath} && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/metadatadb -t unsupported-tag"
-
-            // Tag and push images into the following using the dime_svc_acct
-            //          docker-dime.di2e.net/dime/object-drive-server
-            //          docker-dime.di2e.net/dime/object-drive-metadatadb
-            sh "docker tag deciphernow/odrive-bc:unsupported-tag docker-dime.di2e.net/dime/object-drive-server:${version_display}"
-            sh "docker tag deciphernow/metadatadb:unsupported-tag docker-dime.di2e.net/dime/object-drive-metadatadb:${version_display}"
+            sh "cd ${projectpath} && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/odrive-bc -t latest"
+            sh "cd ${projectpath} && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ./odb --build -i deciphernow/metadatadb -t latest"
+            // Tag and push images using the dime_svc_acct
+            sh "docker tag deciphernow/odrive-bc:latest docker-dime.di2e.net/dime/${serviceName}-server:${version_display}"
+            sh "docker tag deciphernow/metadatadb:latest docker-dime.di2e.net/dime/${serviceName}-metadatadb:${version_display}"
             docker.withRegistry('http://docker-dime.di2e.net', 'dime_svc_acct') {
-                docker.image('docker-dime.di2e.net/dime/object-drive-server:' + version_display).push()
-                docker.image('docker-dime.di2e.net/dime/object-drive-metadatadb:' + version_display).push()
+                docker.image('docker-dime.di2e.net/dime/' + serviceName + '-server:' + version_display).push()
+                docker.image('docker-dime.di2e.net/dime/' + serviceName + '-metadatadb:' + version_display).push()
             }
         }, rpm: {
             // Make it!
@@ -206,30 +195,23 @@ node('docker') {
             script {
                 env.ODRIVE_BUILDDATE="${build_date}"
             }
-            sh "cd ${projectpath} && ./makerpm ${version_full} ${commit_id} ${git_tag}"
-            sh "mv ${projectpath}/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm ${WORKSPACE}"
+            sh "cd ${projectpath} && ./makerpm ${version_full} ${BUILD_NUMBER} ${git_tag}"
+            sh "mv ${projectpath}/${serviceName}-${serviceVersion}-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm ${WORKSPACE}"
             // Archived as job output
             archiveArtifacts artifacts: '*.rpm'
             // To Nexus
             withCredentials([usernamePassword(credentialsId: 'dime_svc_acct', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm"
-                // Dependencies
-                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file glibc/glibc-2.15-60.el6.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/glibc/glibc-2.15-60.el6.x86_64.rpm"
-                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file glibc/glibc-common-2.15-60.el6.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/glibc/glibc-common-2.15-60.el6.x86_64.rpm"
-                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file glibc/glibc-devel-2.15-60.el6.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/glibc/glibc-devel-2.15-60.el6.x86_64.rpm"
-                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file glibc/glibc-headers-2.15-60.el6.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/glibc/glibc-headers-2.15-60.el6.x86_64.rpm"
+                sh "curl -v --user '${USERNAME}:${PASSWORD}' --upload-file ${serviceName}-${serviceVersion}-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/${projectname}/${serviceName}-${serviceVersion}-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm"
             }
             // To S3
             withDockerContainer(args: "-u root -v /var/run/docker.sock:/var/run/docker.sock", image: "docker-dime.di2e.net/docker/backend:maven-3.3.9-jdk-8") {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'MEME_S3_CREDS',
                             usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh "aws configure set default.s3.signature_version s3v4"
-                    sh "aws s3 cp ./object-drive-1.0-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm s3://meme-yum-repo/"
-                    // Dependencies
-                    sh "aws s3 cp ./glibc/glibc-2.15-60.el6.x86_64.rpm s3://meme-yum-repo"
-                    sh "aws s3 cp ./glibc/glibc-common-2.15-60.el6.x86_64.rpm s3://meme-yum-repo"
-                    sh "aws s3 cp ./glibc/glibc-devel-2.15-60.el6.x86_64.rpm s3://meme-yum-repo"
-                    sh "aws s3 cp ./glibc/glibc-headers-2.15-60.el6.x86_64.rpm s3://meme-yum-repo"
+                    sh "aws s3 cp ./${serviceName}-${serviceVersion}-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm s3://meme-yum-repo/"
+                    if (git_tag.length() > 0) {
+                        sh "aws s3 cp ./${serviceName}-${serviceVersion}-${version_full}-${BUILD_NUMBER}.${build_date}.x86_64.rpm s3://builds.363-283.io/"
+                    }
                 }
             }
         }, tar: {
@@ -241,29 +223,30 @@ node('docker') {
             sh "cp ${projectpath}/cmd/odrive-database/odrive-database ${tarroot}/bin/database"
             sh "cp ${projectpath}/cmd/obfuscate/obfuscate ${tarroot}/bin/obfuscate"
             // etc - configuration (includes static images, documentation, etc)
-            sh "cp ${projectpath}/cmd/odrive/odrive.yml ${tarroot}/etc/object-drive.yml"
+            sh "cp ${projectpath}/cmd/odrive/odrive.yml ${tarroot}/etc/${serviceName}.yml"
             sh "mkdir -p ${tarroot}/etc/server/static/css && mkdir -p ${tarroot}/etc/server/static/images && mkdir -p ${tarroot}/etc/server/static/js && mkdir -p ${tarroot}/etc/server/static/templates"
             sh "cp ${projectpath}/server/static/client.go ${tarroot}/etc/server/static/client.go"
             sh "cp ${projectpath}/server/static/css/source_code_pro.css ${tarroot}/etc/server/static/css/source_code_pro.css"
             sh "cp ${projectpath}/server/static/favicon.ico ${tarroot}/etc/server/static/favicon.ico"
-            sh "cp ${projectpath}/server/static/object-drive-1.0-sag.pdf ${tarroot}/etc/server/static/object-drive-1.0-sag.pdf"
+            sh "cp ${projectpath}/server/static/${serviceName}-sag.pdf ${tarroot}/etc/server/static/${serviceName}-sag.pdf"
             sh "cp ${projectpath}/server/static/images/odrive-service.png ${tarroot}/etc/server/static/images/odrive-service.png"
             sh "cp ${projectpath}/server/static/js/getObjectStream.png ${tarroot}/etc/server/static/images/getObjectStream.png"
             sh "cp ${projectpath}/server/static/js/etag.png ${tarroot}/etc/server/static/js/etag.png"
             sh "cp ${projectpath}/server/static/templates/APISample.html ${tarroot}/etc/server/static/templates/APISample.html"
             sh "cp ${projectpath}/server/static/templates/ObjectDriveSDK.java ${tarroot}/etc/server/static/templates/ObjectDriveSDK.java"
+            sh "cp ${projectpath}/server/static/templates/boringcrypto.html ${tarroot}/etc/server/static/templates/boringcrypto.html"
             sh "cp ${projectpath}/server/static/templates/changelog.html ${tarroot}/etc/server/static/templates/changelog.html"
             sh "cp ${projectpath}/server/static/templates/environment.html ${tarroot}/etc/server/static/templates/environment.html"
             sh "cp ${projectpath}/server/static/templates/events.html ${tarroot}/etc/server/static/templates/events.html"
             sh "cp ${projectpath}/server/static/templates/home.html ${tarroot}/etc/server/static/templates/home.html"
             sh "cp ${projectpath}/server/static/templates/rest.html ${tarroot}/etc/server/static/templates/rest.html"
             // tar it up
-            tarFilename = "object-drive-1.0.tgz"
-            projectTarFile = "${WORKSPACE}/${tarFilename}" //${JENKINS_HOME}/workspace/DIME/object-drive-server/object-drive-1.0.tgz"
+            tarFilename = "${serviceName}-${serviceVersion}.tgz"
+            projectTarFile = "${WORKSPACE}/${tarFilename}"
             sh "cd ${projectpath} && tar -cvzf ${tarFilename} -C ${tarroot} etc bin log && mv ${tarFilename} ${projectTarFile}"
             archiveArtifacts artifacts: '*.tgz'
             // deploy it
-            service.buildAndDeploy(serviceName, serviceVersion, version_patch, saltEnvs, projectTarFile)
+            //service.buildAndDeploy(serviceName, serviceVersion, version_patch, saltEnvs, projectTarFile)
         }
     }
 }

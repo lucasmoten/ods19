@@ -5,7 +5,8 @@ import (
 	"io"
 	"log"
 	"sync"
-	"time"
+
+	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
 // ReporterID is used to locate our various counters
@@ -119,7 +120,7 @@ type JobReporters struct {
 func (j *JobReporters) NewInterval() {
 	j.RecentRequestCount = 0
 	j.RecentByteCount = 0
-	j.RecentBegin = getTStampMS()
+	j.RecentBegin = util.NowMS()
 }
 
 // BeginningJob is a request to the goroutine to generate a
@@ -454,12 +455,8 @@ type JobReporter struct {
 	PopWeightedByTime int64
 }
 
-func getTStampMS() int64 {
-	return (time.Now().UnixNano() / (1000 * 1000))
-}
-
 func jobReportersBeginning(r *JobReporters, beginningJob BeginningJob) BeganJob {
-	beganJob := BeganJob(getTStampMS())
+	beganJob := BeganJob(util.NowMS())
 
 	reporter := r.Reporters[beginningJob.ReporterID]
 
@@ -478,7 +475,7 @@ func jobReportersBeginning(r *JobReporters, beginningJob BeginningJob) BeganJob 
 func jobReportersJobReport(r *JobReporters, j EndingJob) {
 	//Snap to millisecond - notice that end stamps always are ahead by 1, to make
 	//divide by zero impossible.
-	j.JobReport.Stop = EndedJob(getTStampMS() + int64(1))
+	j.JobReport.Stop = EndedJob(util.NowMS() + int64(1))
 	duration := int64(j.JobReport.Stop) - int64(j.JobReport.Start)
 
 	//Increment the counters

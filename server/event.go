@@ -20,7 +20,7 @@ func globalEventFromRequest(r *http.Request) events.GEM {
 		EventType:       "object-drive-event",
 		SystemIP:        util.GetIP(config.RootLogger),
 		XForwardedForIP: r.Header.Get("X-Forwarded-For"),
-		Timestamp:       time.Now().Unix(),
+		Timestamp:       time.Now().UTC().Unix(),
 		Action:          "unknown",
 	}
 	if len(r.Header.Get("EXTERNAL_SYS_DN")) > 0 {
@@ -53,7 +53,7 @@ func defaultAudit(r *http.Request) events_thrift.AuditEvent {
 	if len(r.Header.Get("SSL_CLIENT_S_DN")) > 0 {
 		e = audit.WithAdditionalInfo(e, "SSL_CLIENT_S_DN", r.Header.Get("SSL_CLIENT_S_DN"))
 	}
-	e = audit.WithActionTargetVersions(e, "1.0")
+	e = audit.WithActionTargetVersions(e, "1")
 	query := r.URL.RawQuery
 	if len(query) > 0 {
 		e = audit.WithQueryString(e, r.URL.RawQuery)

@@ -7,37 +7,16 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"bitbucket.di2e.net/dime/object-drive-server/config"
-
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
-func getEnvWithDefault(name string, def string) string {
-	val := os.Getenv(name)
-	if val == "" {
-		return def
-	}
-	return val
-}
-
-var schemeAuthority = fmt.Sprintf(
-	"https://%s:%s",
-	getEnvWithDefault(config.OD_EXTERNAL_HOST, "proxier"),
-	getEnvWithDefault(config.OD_EXTERNAL_PORT, "8080"),
-)
-
-// Include this in the server_test package so that it cannot escape it,
-var mountPoint = fmt.Sprintf(
-	"%s/services/object-drive/1.0",
-	schemeAuthority,
-)
+var mountPoint = util.GetClientMountPoint()
 
 func makeHTTPRequestFromInterface(t *testing.T, method string, uri string, obj interface{}) *http.Request {
 	var requestBuffer *bytes.Buffer
@@ -147,7 +126,7 @@ func makeFolderViaJSON(folderName string, clientid int, t *testing.T) *protocol.
 
 func makeFolderWithParentViaJSON(folderName string, parentID string, clientid int, t *testing.T) *protocol.Object {
 
-	nameWithTimestamp := folderName + strconv.FormatInt(time.Now().Unix(), 10)
+	nameWithTimestamp := folderName + strconv.FormatInt(time.Now().UTC().Unix(), 10)
 	obj, err := makeFolderWithACMWithParentViaJSON(nameWithTimestamp, parentID, ValidACMUnclassified, clientid)
 
 	if err != nil {

@@ -1,7 +1,6 @@
 #!/bin/bash
 
-docker-compose stop && docker-compose rm -f && (cd gatekeeper; ./makeimage) && (cd odrive; ./makeimage) && (cd packaging; ./makeimage)
+docker-compose stop && docker-compose rm -f && (cd odrivebc; ./makeimage) && (cd packagingbc; ./makeimage)
 docker-compose up -d
-docker-compose stop packaging
 docker-compose logs -f odrive
 

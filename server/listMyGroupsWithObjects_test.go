@@ -77,7 +77,7 @@ func TestListMyGroupsWithObjects(t *testing.T) {
 func makeObjectOwnedByGroup(t *testing.T, clientid int, ownedby string) {
 	objuri := mountPoint + "/objects"
 	obj := protocol.Object{}
-	obj.Name = "TestListMyGroupsWithObjects " + strconv.FormatInt(time.Now().Unix(), 10)
+	obj.Name = "TestListMyGroupsWithObjects " + strconv.FormatInt(time.Now().UTC().Unix(), 10)
 	obj.TypeName = "Folder"
 	obj.OwnedBy = ownedby
 	obj.RawAcm = ValidACMUnclassified

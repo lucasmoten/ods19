@@ -1,0 +1,9 @@
+/opt/services/object-drive---MajorMinorVersion--/log/object-drive.log
+{
+    daily
+    copytruncate
+    missingok
+    rotate 5
+    compress
+    notifempty
+}

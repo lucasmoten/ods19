@@ -13,7 +13,7 @@ func TestCreateServiceAnnouncement(t *testing.T) {
 	}
 
 	zkAddress := "zk:2181"
-	zkBasePath := "/services/object-drive/1.0"
+	zkBasePath := "/services/object-drive/0.0"
 	zkTimeout := int64(5)
 
 	zkState, err := zookeeper.RegisterApplication(zkBasePath, zkAddress, zkTimeout)
