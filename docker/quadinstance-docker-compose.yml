@@ -92,7 +92,8 @@ services:
       - postgres      
 
   metadatadb:
-    image: deciphernow/metadatadb:latest
+    #image: deciphernow/metadatadb:latest
+    image: docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.20b4
     mem_limit: 1024m
     cpuset: "0"
     environment:
@@ -108,7 +109,7 @@ services:
 
   odrive:
     hostname: odrive
-    image: deciphernow/odrive-bc:latest
+    image: docker-dime.di2e.net/dime/object-drive-server:1.0.20b4
     environment:
         - OD_AAC_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
         - OD_AAC_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
@@ -149,7 +150,7 @@ services:
         - OD_EVENT_ZK_ADDRS=zk:2181
         - OD_LOG_LEVEL=DEBUG
         - OD_PEER_CN=twl-server-generic2
-        - OD_PEER_ENABLED=false
+        - OD_PEER_ENABLED=true
         - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
         - OD_SERVER_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/trust.pem
         - OD_SERVER_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.cert.pem
@@ -166,7 +167,7 @@ services:
 
   odrive2:
     hostname: odrive2
-    image: deciphernow/odrive-bc:latest
+    image: docker-dime.di2e.net/dime/object-drive-server:1.0.20b4
     environment:
         - OD_AAC_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
         - OD_AAC_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
@@ -207,7 +208,7 @@ services:
         - OD_EVENT_ZK_ADDRS=zk:2181
         - OD_LOG_LEVEL=DEBUG
         - OD_PEER_CN=twl-server-generic2
-        - OD_PEER_ENABLED=false
+        - OD_PEER_ENABLED=true
         - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
         - OD_SERVER_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/trust.pem
         - OD_SERVER_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.cert.pem
@@ -224,7 +225,8 @@ services:
 
   odrive3:
     hostname: odrive3
-    image: deciphernow/odrive-bc:latest
+    #image: deciphernow/odrive-bc:latest
+    image: docker-dime.di2e.net/dime/object-drive-server:1.0.20b4
     environment:
         - OD_AAC_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
         - OD_AAC_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
@@ -265,7 +267,7 @@ services:
         - OD_EVENT_ZK_ADDRS=zk:2181
         - OD_LOG_LEVEL=DEBUG
         - OD_PEER_CN=twl-server-generic2
-        - OD_PEER_ENABLED=false
+        - OD_PEER_ENABLED=true
         - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
         - OD_SERVER_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/trust.pem
         - OD_SERVER_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.cert.pem
@@ -282,7 +284,8 @@ services:
 
   odrive4:
     hostname: odrive4
-    image: deciphernow/odrive-bc:latest
+    #image: deciphernow/odrive-bc:latest
+    image: docker-dime.di2e.net/dime/object-drive-server:1.0.20b4
     environment:
         - OD_AAC_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
         - OD_AAC_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
@@ -323,7 +326,7 @@ services:
         - OD_EVENT_ZK_ADDRS=zk:2181
         - OD_LOG_LEVEL=DEBUG
         - OD_PEER_CN=twl-server-generic2
-        - OD_PEER_ENABLED=false
+        - OD_PEER_ENABLED=true
         - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
         - OD_SERVER_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/trust.pem
         - OD_SERVER_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.cert.pem

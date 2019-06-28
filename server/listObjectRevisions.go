@@ -22,7 +22,7 @@ func (h AppServer) listObjectRevisions(ctx context.Context, w http.ResponseWrite
 	caller, _ := CallerFromContext(ctx)
 	user, _ := UserFromContext(ctx)
 	dao := DAOFromContext(ctx)
-
+	logger := LoggerFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
 	gem.Action = "list"
 	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventSearchQry")

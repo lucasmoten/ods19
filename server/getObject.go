@@ -21,6 +21,7 @@ func (h AppServer) getObject(ctx context.Context, w http.ResponseWriter, r *http
 
 	dao := DAOFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
+	logger := LoggerFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
 	gem.Action = "access"
 	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")

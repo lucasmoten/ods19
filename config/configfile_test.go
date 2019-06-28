@@ -95,6 +95,10 @@ func TestParseAppConfigurationFromConfigFile(t *testing.T) {
 
 func readAllOrFail(t *testing.T, path string) []byte {
 	f, err := os.Open(path)
+	// DIMEODS-1262 - ensure file closed if not nil
+	if f != nil {
+		defer f.Close()
+	}
 	if err != nil {
 		t.Fail()
 	}

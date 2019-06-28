@@ -14,6 +14,10 @@ import (
 func TestEnvVars(t *testing.T) {
 
 	ff, _ := os.Open("envvars.go")
+	// DIMEODS-1262 - ensure file closed if not nil
+	if ff != nil {
+		defer ff.Close()
+	}
 	src, _ := ioutil.ReadAll(ff)
 	fset := token.NewFileSet() // positions are relative to fset
 	f, err := parser.ParseFile(fset, "envvars.go", string(src), 0)

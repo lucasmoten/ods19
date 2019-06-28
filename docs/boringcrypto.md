@@ -28,9 +28,9 @@ apply. Of key consideration is the use of cryptographic algorithms.
 Object Drive is written in the Go programming language which was designed by engineers at Google in 2007 with a 1.0 release in 2012. In 2017, Google submitted the __BoringCrypto__ core of BoringSSL through the National Institute of Standards & Technology (NIST) [Cryptographic
 Module Validation Program](https://csrc.nist.gov/Projects/cryptographic-module-validation-program/Standards). 
 
-* [dev.boringcrypto branch readme](https://go.googlesource.com/go/+/refs/heads/dev.boringcrypto.go1.11/README.boringcrypto.md)
+* [dev.boringcrypto branch readme](https://go.googlesource.com/go/+/refs/heads/dev.boringcrypto.go1.12/README.boringcrypto.md)
 * [JIRA Issue for Object Drive and Boring Crypto](https://jira.di2e.net/browse/DIMEODS-1144)
-* [Go+BoringCrypto](https://go.googlesource.com/go/+/refs/heads/dev.boringcrypto.go1.11/misc/boring/)
+* [Go+BoringCrypto](https://go.googlesource.com/go/+/refs/heads/dev.boringcrypto.go1.12/misc/boring/)
 
 Releases of Object Drive starting with 1.0.18 are built using a version of Go that includes the BoringCrypto module to satisfy FIPS 140-2.  This is signified in the same way that the Go does with a suffix of `b` followed by release number (e.g. b4 represented as 1.0.18b4).
 
@@ -41,7 +41,7 @@ Go+BoringCrypto modifies the crypto package of Go programming language to check 
 
 The latest versions of Go+BoringCrypto are acquired from the S3 go-boringcrypto bucket whose contents can be listed at https://go-boringcrypto.storage.googleapis.com/
 
-As of this writing, the current version of Go+BoringCrypto used by the project is go1.11.5b4
+As of this writing, the current version of Go+BoringCrypto used by the project is go1.12.6b4
 
 Building projects with Go+BoringCrypto is performed the same way as that when using Go Native.
 
@@ -57,7 +57,7 @@ Building projects with Go+BoringCrypto is performed the same way as that when us
 
 The version string reported by `runtime.Version` does not indicate that BoringCrypto
 was actually used for the build. For example, linux/386 and non-cgo linux/amd64 binaries
-will report a version of `go1.8.3b2` but not be using BoringCrypto.
+may report a version of `go1.8.3b2` but not be using BoringCrypto.
 
 To check whether a given binary is using BoringCrypto, run `go tool nm` on it and check
 that it has symbols named `*_Cfunc__goboringcrypto_*`.
@@ -115,16 +115,16 @@ cd bin
 cd ..
 cd ..
 
-# go dev.boringcrypto.go1.11 
+# go dev.boringcrypto.go1.12 
 #    (once downloaded, boringcrypto bits built in src/crypto/internal/boring/build/build.sh)
 #    this wgets the same boringssl as below and checks the hash
-#    however.... the runtime.version ends up being set:   
+#    however.... the runtime.version ends up being set from the commit hash like so:   
 #        devel +2e2a04a605 Mon Sep 24 21:19:42 2018 -0400
 #    which is from the commit info. 
 #    https://go.googlesource.com/go/+/dev.boringcrypto/ is authoritative for source
 #      Within src/misc/boring/build.release is how it packages and publishes to the
 #      go-boringcrypto.storage.googleapis.com location
-git clone --single-branch -b dev.boringcrypto.go1.11 git@github.com:golang/go.git
+git clone --single-branch -b dev.boringcrypto.go1.12 git@github.com:golang/go.git
 cd go/src
 ./all.bash
 which go

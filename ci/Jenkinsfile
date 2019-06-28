@@ -30,9 +30,10 @@ node('docker') {
         use_boring_crypto = true
         if (use_boring_crypto) {
             boring_crypto_version = "b4"
-            golang_folder = "/home/jenkins/go-1.11.5b4"
-            golang_tar_file = "go1.11.5b4.linux-amd64.tar.gz"
-            golang_tar_sum = "9b5b2972b452da9ba6bba65bab18fb9e8fbda31b5c489275710e5429d76f568c"
+            // Get these values from https://go.googlesource.com/go/+/dev.boringcrypto/misc/boring/RELEASES
+            golang_folder = "/home/jenkins/go-1.12.6b4"
+            golang_tar_file = "go1.12.6b4.linux-amd64.tar.gz"
+            golang_tar_sum = "eebc2e7f37555760adb361985b861d0cd34f9401cf7456d8d2f2f3082a60eee1"
         } else {
             error("Boring Crypto is required for Go Builds in this environment")
         }
@@ -228,7 +229,9 @@ node('docker') {
             sh "cp ${projectpath}/server/static/client.go ${tarroot}/etc/server/static/client.go"
             sh "cp ${projectpath}/server/static/css/source_code_pro.css ${tarroot}/etc/server/static/css/source_code_pro.css"
             sh "cp ${projectpath}/server/static/favicon.ico ${tarroot}/etc/server/static/favicon.ico"
+            sh "cp ${projectpath}/server/static/${serviceName}-internal.pdf ${tarroot}/etc/server/static/${serviceName}-internal.pdf"
             sh "cp ${projectpath}/server/static/${serviceName}-sag.pdf ${tarroot}/etc/server/static/${serviceName}-sag.pdf"
+            sh "cp ${projectpath}/server/static/${serviceName}-sipg.pdf ${tarroot}/etc/server/static/${serviceName}-sipg.pdf"
             sh "cp ${projectpath}/server/static/images/odrive-service.png ${tarroot}/etc/server/static/images/odrive-service.png"
             sh "cp ${projectpath}/server/static/js/getObjectStream.png ${tarroot}/etc/server/static/images/getObjectStream.png"
             sh "cp ${projectpath}/server/static/js/etag.png ${tarroot}/etc/server/static/js/etag.png"

@@ -3,6 +3,8 @@ package autoscale
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"math"
 	"os"
 	"runtime"
@@ -37,16 +39,18 @@ type CloudWatchStatsAccumulator struct {
 
 // CloudWatchGeneralStats is the data that we send up to CloudWatch
 type CloudWatchGeneralStats struct {
-	Latency        *float64
-	Throughput     *float64
-	CPUUtilization *float64
-	MemKB          *float64
-	MemPct         *float64
-	Load           *float64
-	IntervalMillis *int64
-	IntervalLast   *int64
-	IntervalNext   *int64
-	SysMem         *float64
+	Latency         *float64
+	Throughput      *float64
+	CPUUtilization  *float64
+	MemKB           *float64
+	MemPct          *float64
+	Load            *float64
+	IntervalMillis  *int64
+	IntervalLast    *int64
+	IntervalNext    *int64
+	SysMem          *float64
+	FileDescriptors *int64
+	GoRoutines      *int64
 }
 
 //CloudWatchDump shows the latest thing sent to CloudWatch
@@ -78,6 +82,12 @@ func CloudWatchDump(w io.Writer) {
 	}
 	if renderedStats.SysMem != nil {
 		fmt.Fprintf(w, "\t\"statssnapshot/process/mem_from_os_kb\": %9.f,\n", *renderedStats.SysMem)
+	}
+	if renderedStats.FileDescriptors != nil {
+		fmt.Fprintf(w, "\t\"statssnapshot/process/file_descriptors_count\": %d,\n", *renderedStats.FileDescriptors)
+	}
+	if renderedStats.GoRoutines != nil {
+		fmt.Fprintf(w, "\t\"statssnapshot/process/go_routines_count\": %d,\n", *renderedStats.GoRoutines)
 	}
 	// 20190402 - Commenting these out because its way wrong in implementation, assuming success and instant transfers
 	// if renderedStats.Throughput != nil {
@@ -157,11 +167,13 @@ type LoadAvgStat struct {
 func GetLoadAvgStat(logger *zap.Logger) *LoadAvgStat {
 	var err error
 	f, err := os.Open("/proc/loadavg")
+	if f != nil {
+		defer f.Close()
+	}
 	if err != nil {
 		logger.Warn("loadavg fail to open", zap.Error(err))
 		return nil
 	}
-	defer f.Close()
 
 	buffer := make([]byte, 1024)
 	count, err := f.Read(buffer)
@@ -266,10 +278,24 @@ func ComputeOverallPerformance(
 	totalCPUtime, totalWaitTime := computeUtilization(prevStat, nextStat)
 	cwStats.CPUUtilization = aws.Float64(100.0 * float64(totalCPUtime) / float64(totalCPUtime+totalWaitTime))
 
+	cwStats.FileDescriptors = aws.Int64(GetFileDescriptorCount())
+	cwStats.GoRoutines = aws.Int64(int64(runtime.NumGoroutine()))
+
 	//Just drop these numbers where the stats page can get to them so that we don't flood the Info logs with periodic cloudwatch success stats
 	//during total inactivity.  You can accept the flood if you set to Debug though.
 	cwAccumulatorMutex.Unlock()
 	return cwStats, nextStat
+}
+
+// GetFileDescriptorCount gets the number of file descriptors associated with this process
+func GetFileDescriptorCount() int64 {
+	f, err := ioutil.ReadDir("/proc/self/fd")
+	if err != nil {
+		log.Printf("ERROR reading directory for count of file descriptors\n")
+		log.Printf(err.Error())
+		return -1
+	}
+	return int64(len(f))
 }
 
 // CloudWatchReportingStart begins the goroutine that publishes into CloudWatch

@@ -134,12 +134,15 @@ func buildCertPoolFromPath(filePath string, poolName string) *x509.CertPool {
 
 	// Open path indicated in configuration
 	pathSpec, err := os.Open(filePath)
+	// DIMEODS-1262 - ensure file closed if not nil
+	if pathSpec != nil {
+		defer pathSpec.Close()
+	}
 	if err != nil {
 		flogger.Error("error opening file path", zap.Error(err))
 		return theCertPool
 
 	}
-	defer pathSpec.Close()
 
 	// Check information about the path specification
 	pathSpecInfo, err := pathSpec.Stat()

@@ -76,11 +76,19 @@ func (d *CiphertextCacheData) NewPuller(logger *zap.Logger, rName FileId, totalL
 		Index:           cipherStartAt,
 	}
 
-	//look in permanent storage first
+	//look in local and permanent storage first
 	err := p.More(false)
-	if err != nil && (strings.ToLower(os.Getenv(config.OD_PEER_ENABLED)) == "true") {
-		//This will find it in a peer if it wasn't already found
-		err = p.More(true)
+	if err != nil {
+		// DIMEODS-1262 - additional logging
+		logger.Debug(
+			"PermanentStorage pull attempt failed. Will try from peer if enabled, or stall waiting for peer to upload",
+			zap.String("od_peer_enabled", os.Getenv(config.OD_PEER_ENABLED)),
+			zap.String("error", err.Error()),
+		)
+		if strings.ToLower(os.Getenv(config.OD_PEER_ENABLED)) == "true" {
+			//This will find it in a peer if it wasn't already found
+			err = p.More(true)
+		}
 	}
 	sleepTime := time.Duration(1) * time.Second
 	attempts := 20
@@ -93,16 +101,28 @@ func (d *CiphertextCacheData) NewPuller(logger *zap.Logger, rName FileId, totalL
 		}
 		attempts--
 		if attempts == 0 {
+			// DIMEODS-1262 - additional logging to relay what happened
+			logger.Debug(
+				"PermanentStorage pull stall",
+				zap.Int("attempts", int(attempts)),
+			)
 			break
 		}
 		sleepTime = sleepTime + sleepTime
-		p.Logger.Info(
+		// DIMEODS-1262 - logging level state and added attempts remaining
+		logger.Debug(
 			"PermanentStorage pull stall",
+			zap.Int("attempts", int(attempts)),
 			zap.Int("sleepInSeconds", int(sleepTime/time.Second)),
 		)
 		time.Sleep(sleepTime)
 	}
 	if err != nil {
+		// DIMEODS-1262 - additional logging to relay what happened
+		logger.Warn(
+			"PermanentStorage pull stall",
+			zap.String("error", err.Error()),
+		)
 		return nil, false, err
 	}
 	return p, p.IsLocal, nil
@@ -112,23 +132,28 @@ func (d *CiphertextCacheData) NewPuller(logger *zap.Logger, rName FileId, totalL
 // end is only used for GetStream pulls, which have high latency because we cannot stream until we have the file.
 func (p *Puller) getFileHandle(begin, end int64, p2p bool) (io.ReadCloser, error) {
 	// Always check disk first - this lets us switch to disk when background cache finishes.
-	file, _, err := UseLocalFile(p.CiphertextCache.Logger, p.CiphertextCache, p.RName, begin)
+	file, _, err := UseLocalFile(p.Logger, p.CiphertextCache, p.RName, begin)
 	if file != nil {
+		p.Logger.Debug("puller getting file locally")
 		p.IsLocal = true
 		p.From = pullFromDisk
 		return file, nil
+	} else {
+		p.Logger.Debug("puller didn't find file locally, will try p2p or PermanentStorage")
 	}
 	// try p2p if asked, or if no PermanentStorage even exists
 	p.IsLocal = false
 	var fileP2P io.ReadCloser
 	// Having no permanent storage is like an implicit p2p flag
 	if p2p || p.IsP2P || p.CiphertextCache.GetPermanentStorage() == nil {
+		p.Logger.Debug("puller will try p2p")
 		fileP2P, err = useP2PFile(p.Logger, p.CiphertextCache.CiphertextCacheZone, p.RName, begin)
 		if err != nil {
 			p.Logger.Info("puller cant use p2p", zap.Error(err))
 		}
 	}
 	if fileP2P != nil {
+		p.Logger.Debug("puller getting file from p2p")
 		// If we got a chunk p2p, then we need to be allowed to continue to run p2p for the remainder of this pull
 		p.IsP2P = true
 		p.From = pullFromPeer
@@ -139,11 +164,18 @@ func (p *Puller) getFileHandle(begin, end int64, p2p bool) (io.ReadCloser, error
 		return nil, fmt.Errorf("puller did not use p2p and we have no PermanentStorage")
 	}
 	// Range request it out of PermanentStorage if we can
+	p.Logger.Debug("puller will try to range request from PermanentStorage", zap.String("key", *p.Key), zap.Int64("begin", begin), zap.Int64("end", end))
 	f, err := p.CiphertextCache.GetPermanentStorage().GetStream(p.Key, begin, end)
+	p.Logger.Debug("puller getting file from PermanentStorage")
 	if err == nil && f != nil {
 		p.From = pullFromStorage
 	} else {
 		// We are doomed to lose the connection.  It will get logged.
+		p.Logger.Warn("puller is doomed to lose connection")
+		if f != nil {
+			// DIMEODS-1262 - is this a potential file leak?
+			p.Logger.Warn("may have potential file leak in puller.go 174")
+		}
 		p.From = pullFromUnknown
 	}
 	return f, err
@@ -167,7 +199,7 @@ func (p *Puller) More(useP2P bool) error {
 	}
 
 	f, err := p.getFileHandle(begin, end, useP2P)
-
+	p.Logger.Debug("puller returned from getting file handle")
 	if p.From != pullFromStorage {
 		// Recompute for at least a 1GB chunk len to avoid
 		// open/close/search every 16MB - bad performance on large file downloads

@@ -54,6 +54,9 @@ func TestCacheSimple(t *testing.T) {
 
 	t.Logf("reading source to write into cache")
 	fIn, err := os.Open("./cache_test.go")
+	if fIn != nil {
+		defer fIn.Close()
+	}
 	if err != nil {
 		t.Logf("unable to open source file for testing: %v", err)
 		t.FailNow()
@@ -62,6 +65,9 @@ func TestCacheSimple(t *testing.T) {
 	fNameUploaded := d.Resolve(ciphertext.NewFileName(rName, ciphertext.FileStateUploaded))
 
 	fOut, err := d.Files().Create(fNameUploaded)
+	if fOut != nil {
+		defer fOut.Close()
+	}
 	if err != nil {
 		t.Logf("unable to create source file for testing: %v", err)
 		t.FailNow()

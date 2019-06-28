@@ -13,8 +13,8 @@ RUN yum -y update; \
     yum -y install epel-release; \
     yum -y --disablerepo="*" --enablerepo="epel" install python34;
 
-RUN wget https://storage.googleapis.com/golang/go1.11.5.linux-amd64.tar.gz
-RUN tar -C /usr/local -xzf go1.11.5.linux-amd64.tar.gz
+RUN wget https://storage.googleapis.com/golang/go1.12.6.linux-amd64.tar.gz
+RUN tar -C /usr/local -xzf go1.12.6.linux-amd64.tar.gz
 ENV PATH /usr/local/go/bin:$PATH
 ENV GOPATH /go
 

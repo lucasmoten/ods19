@@ -55,7 +55,10 @@ func (h AppServer) serveStatic(ctx context.Context, w http.ResponseWriter, r *ht
 	}
 	w.Header().Set("Content-Type", GetContentTypeFromFilename(path))
 	f, err := os.Open(path)
-	defer f.Close()
+	// DIMEODS-1262 - ensure file closed if not nil
+	if f != nil {
+		defer f.Close()
+	}
 	if err != nil {
 		herr := NewAppError(http.StatusNotFound, err, errStaticResourceNotFound)
 		h.publishError(gem, herr)

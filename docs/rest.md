@@ -333,7 +333,20 @@ An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage
 + Response 405
 
         Deleted
-        
+
++ Response 409
+
+        Conflict 
+
+        When submitting a request to create an object this status code may be 
+        returned under any of the following conditions:
+        * Creating an object where its parent is deleted. The parent must be 
+        restored from the trash before creating a new object beneath it.
+        * Create an object where an ancestor is deleted. The ancestor must be 
+        restored from the trash before creating a new object beneath it.
+        * Create an object in the deleted state. This is not permitted.
+
+
 + Response 410
 
         Does Not Exist
@@ -390,6 +403,16 @@ It may be called on objects int the trash which also expose additional fields in
 + Response 404
 
         Not Found
+
++ Response 409
+
+        Conflict
+
+        When submitting a request to get the properties of an object this 
+        status code may be returned under any of the following conditions:
+        * An ancestor of the referenced object is deleted. The ancestor must
+        be restored from the trash before being able to retrieve the 
+        properties of this object.
 
 + Response 410
 
@@ -462,6 +485,17 @@ This creates a new revision of the object.
 
         Deleted
         
++ Response 409
+
+        Conflict
+        
+        When submitting a request to update an object this status code may be
+        returned under any of the following conditions:
+        * The referenced object is in the trash. It must be restored prior
+        to making updates
+        * An ancestor of the referenced object is deleted. The ancestor must 
+        be restored from the trash before making updates
+
 + Response 410
 
         Does Not Exist
@@ -540,7 +574,17 @@ files that are too large to buffer in memory.
 + Response 405
 
         Deleted
-        
+
++ Response 409
+
+        Conflict 
+
+        When submitting a request to get the content stream of an object this
+        status code may be returned under any of the following conditions:
+        * An ancestor of the referenced object is deleted. The ancestor must
+        be restored from the trash before being able to retrieve the content 
+        stream.  
+
 + Response 410
 
         Does Not Exist
@@ -649,7 +693,18 @@ This creates a new revision of the object.
 + Response 405
 
         Deleted
+
++ Response 409
+
+        Conflict
         
+        When submitting a request to update an object this status code may be
+        returned under any of the following conditions:
+        * The referenced object is in the trash. It must be restored prior
+        to making updates
+        * An ancestor of the referenced object is deleted. The ancestor must 
+        be restored from the trash before making updates
+
 + Response 410
 
         Does Not Exist
@@ -816,7 +871,18 @@ This microservice operation will remove an object from the trash and delete it f
 + Response 405
 
         If the object or an ancestor is deleted.
+
++ Response 409
+
+        Conflict
         
+        When submitting a request to list the revisions of an object this
+        code may be returned under any of the following conditions:
+        * The referenced object is in the trash. It must be restored prior
+        to retrieving information about its revisions.
+        * An ancestor of the referenced object is deleted. The ancestor must 
+        be restored from the trash before being able to retrieve the revisions
+
 + Response 410
 
         If the object referenced no longer exists
@@ -866,7 +932,18 @@ This microservice operation will remove an object from the trash and delete it f
 + Response 405
 
         If the object or an ancestor is deleted.
+
++ Response 409
+
+        Conflict
         
+        When submitting a request to get the content stream of an object 
+        this status code may be returned under any of the following 
+        conditions:
+        * An ancestor of the referenced object is deleted. The ancestor must 
+        be restored from the trash before being able to retrieve the content
+        stream.
+
 + Response 410
 
         If the object referenced no longer exists
@@ -1269,7 +1346,18 @@ Purpose: This microservice operation retrieves a list of objects contained withi
 + Response 405
 
         Deleted
+
++ Response 409
+
+        Conflict
         
+        When submitting a request to list the folder objects this
+        code may be returned under any of the following conditions:
+        * The referenced object is in the trash. It must be restored prior
+        to retrieving information about its children.
+        * An ancestor of the referenced object is deleted. The ancestor must 
+        be restored from the trash before being able to list children
+
 + Response 410
 
         Does Not Exist
@@ -1374,7 +1462,7 @@ This microservice operation retrieves a list of objects that are shared to every
             + `inline`
             + `attachment`
 ### Download File By Path [GET]
-This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a file content stream given a standard URI path. For each component of the path the service will identify matching file or folder of that name for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name to accomplish the same.
+This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a file content stream given a standard URI path. For each component of the path the service will identify matching file or folder of that name or object identifier for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name to accomplish the same.
 
 Headers are passed along to support range requests, ETag values, and so forth.
 
@@ -1482,7 +1570,7 @@ Headers are passed along to support range requests, ETag values, and so forth.
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
 ### List Files By Path [GET]
-This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a list of objects contained within the specified path, with optional settings for pagination. By default, this operation only returns metadata about the first 20 items.  For each component of the path the service will identify matching file or folder of that name for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
+This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a list of objects contained within the specified path, with optional settings for pagination. By default, this operation only returns metadata about the first 20 items.  For each component of the path the service will identify matching file or folder of that name or object identifier for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
 to accomplish the same.
 
 + Response 200 (application/json)
@@ -1522,7 +1610,7 @@ to accomplish the same.
             + `inline`
             + `attachment`
 ### Download Group File By Path [GET]
-This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a file content stream given a standard URI path. For each component of the path the service will identify matching file or folder of that name for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name to accomplish the same.
+This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a file content stream given a standard URI path. For each component of the path the service will identify matching file or folder of that name or object identifier for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name to accomplish the same.
 
 Headers are passed along to support range requests, ETag values, and so forth.
 
@@ -1633,7 +1721,7 @@ Headers are passed along to support range requests, ETag values, and so forth.
     + expression: `0` (string, optional) - **experimental** - A phrase that should be used for the match against the field value
 
 ### List Group Files By Path [GET]
-This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a list of objects contained within the specified path, with optional settings for pagination. By default, this operation only returns metadata about the first 20 items.  For each component of the path the service will identify matching file or folder of that name for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
+This microservice operation is experimental (since v1.0.14). This microservice operation retrieves a list of objects contained within the specified path, with optional settings for pagination. By default, this operation only returns metadata about the first 20 items.  For each component of the path the service will identify matching file or folder of that name or object identifier for which the user has read access to iteratively until it reaches the final node.  If a user does not have read access to any component of the path, an error code will be returned.  This is a convenience function around manually making calls to list/search for objects with a given name 
 to accomplish the same.
 
 + Response 200 (application/json)
@@ -2108,7 +2196,16 @@ This creates a new revision of the object.
 + Response 405
 
         Referenced object is deleted.
-          
+
++ Response 409
+
+        Conflict
+        
+        When submitting a request to undelete an object this status code may
+        be returned under any of the following conditions:
+        * An ancestor of the referenced object is deleted. The ancestor must 
+        be restored from the trash before being able to restore this object
+
 + Response 410
 
         Referenced object no longer exists

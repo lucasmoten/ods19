@@ -61,7 +61,9 @@ install -m 640 -D ${ODRIVE_BINARY_DIR}/odrive.yml ${ODRIVE_PACKAGE_NAME}/opt/ser
 install -m 640 -D ${ODRIVE_ROOT}/server/static/client.go ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-${ODRIVE_VERSION_MAJOR_MINOR}/libs/server/static/client.go 
 install -m 640 -D ${ODRIVE_ROOT}/server/static/css/source_code_pro.css ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-${ODRIVE_VERSION_MAJOR_MINOR}/libs/server/static/css/source_code_pro.css 
 install -m 640 -D ${ODRIVE_ROOT}/server/static/favicon.ico ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-${ODRIVE_VERSION_MAJOR_MINOR}/libs/server/static/favicon.ico
+install -m 640 -D ${ODRIVE_ROOT}/server/static/object-drive-internal.pdf ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-${ODRIVE_VERSION_MAJOR_MINOR}/libs/server/static/object-drive-internal.pdf
 install -m 640 -D ${ODRIVE_ROOT}/server/static/object-drive-sag.pdf ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-${ODRIVE_VERSION_MAJOR_MINOR}/libs/server/static/object-drive-sag.pdf
+install -m 640 -D ${ODRIVE_ROOT}/server/static/object-drive-sipg.pdf ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-${ODRIVE_VERSION_MAJOR_MINOR}/libs/server/static/object-drive-sipg.pdf
 install -m 640 -D ${ODRIVE_ROOT}/server/static/images/odrive-service.png ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-${ODRIVE_VERSION_MAJOR_MINOR}/libs/server/static/images/odrive-service.png
 install -m 640 -D ${ODRIVE_ROOT}/server/static/js/getObjectStream.png ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-${ODRIVE_VERSION_MAJOR_MINOR}/libs/server/static/js/getObjectStream.png
 install -m 640 -D ${ODRIVE_ROOT}/server/static/js/etag.png ${ODRIVE_PACKAGE_NAME}/opt/services/object-drive-${ODRIVE_VERSION_MAJOR_MINOR}/libs/server/static/js/etag.png

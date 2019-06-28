@@ -253,7 +253,9 @@ func (aac *AACAuth) IsUserAuthorizedForACM(userIdentity string, acm string) (boo
 	}
 
 	// Call AAC Service.
+	aac.Logger.Debug("calling aac.Service.CheckAccess")
 	resp, err := aac.Service.CheckAccess(userIdentity, tokenType, flattenedACM)
+	aac.Logger.Debug("aac.Service.CheckAccess returned")
 	if err != nil {
 		aac.Logger.Warn("error calling aac.checkaccess", zap.Error(err))
 		return false, ErrFailToCheckUserAccess

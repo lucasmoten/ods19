@@ -100,10 +100,13 @@ func MoveToS3(path, bucketName, key string) error {
 
 	localFile := path
 	f, _ := os.Open(localFile)
+	// DIMEODS-1262 - ensure file closed if not nil
+	if f != nil {
+		defer f.Close()
+	}
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
 	n, err := io.Copy(w, f)
 	if err != nil {

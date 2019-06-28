@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"bitbucket.di2e.net/dime/object-drive-server/auth"
-	"bitbucket.di2e.net/dime/object-drive-server/ciphertext"
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models/acm"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
@@ -24,9 +24,10 @@ func (h AppServer) GetUserGroupsAndSnippets(ctx context.Context) ([]string, *acm
 	if !ok {
 		logger.Debug("snippets were not found on context")
 		// TODO(cm): should we perform this check outside of this function?
-		if strings.ToLower(caller.UserDistinguishedName) == strings.ToLower(ciphertext.PeerSignifier) {
+		PeerSignifier := config.GetEnvOrDefault(config.OD_PEER_SIGNIFIER, "P2P")
+		if strings.ToLower(caller.UserDistinguishedName) == strings.ToLower(PeerSignifier) {
 			// no snippets
-			logger.Debug("caller is a peer, no snippets needed", zap.String("peersignifier", ciphertext.PeerSignifier))
+			logger.Debug("caller is a peer, no snippets needed", zap.String("peersignifier", PeerSignifier))
 			ok = true
 		}
 	}

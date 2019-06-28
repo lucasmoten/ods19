@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -20,15 +21,6 @@ import (
 )
 
 var (
-	// PeerSignifier indicates an identifer to use for identifying that the request is from a peer instance. It should be a value
-	// that will not be presented as the user id from normal PKI connections which are distinguished names.
-	// Leave this alone!  We are blocking direct access to this endpoint by setting it to something that can't be a DN.
-	// It has to be the same for all peers.  If we needed it, real identifier is the cert DN which is set on
-	// the user context for other values.  It CANNOT be associated with a particular user, because background processes will
-	// do this on behalf of nobody in particular.
-	PeerSignifier = config.GetEnvOrDefault(config.OD_PEER_SIGNIFIER, "P2P")
-	// When we connect p2p, we may need to set the CN being expected
-	peerCN = config.GetEnvOrDefault(config.OD_PEER_CN, "")
 	// peerMap is repopulated by a callback that knows when the odrive membership group changes
 	peerMap            = make(map[string]*PeerMapData) //Atomically updated
 	connectionMap      = make(map[string]*http.Client) //Locked for add and remove - no IO under these locks!
@@ -47,6 +39,8 @@ type PeerMapData struct {
 
 // CreateRandomName gives each file a random name
 func CreateRandomName() string {
+	// NOTE: This length affects the rname a.k.a. contentConnector length when in hexadecimal format.  If this is altered
+	// the API request for the Ciphertext route regular expression may need updated.
 	key := make([]byte, 26)
 	rand.Read(key)
 	return hex.EncodeToString(key)
@@ -57,7 +51,7 @@ func ScheduleSetPeers(newPeerMap map[string]*PeerMapData) {
 	setPeers(newPeerMap, peerMap)
 }
 
-// setPeers calculates which connections can be deleted an sets the new peermap
+// setPeers calculates which connections can be deleted and sets the new peermap
 func setPeers(newPeerMap map[string]*PeerMapData, oldPeerMap map[string]*PeerMapData) {
 
 	//Delete old items from the connection map - this just needs to be done eventually
@@ -102,31 +96,45 @@ func UseLocalFile(logger *zap.Logger, d CiphertextCache, rName FileId, cipherSta
 	var cipherFile *os.File
 	var err error
 	var length int64
-
+	tm := time.Now().UTC()
 	cipherFilePathUploaded := d.Resolve(NewFileName(rName, FileStateUploaded))
 	cipherFilePathCached := d.Resolve(NewFileName(rName, FileStateCached))
 
 	//Try the uploaded file
+	logger.Debug("useLocalFile checking for FileStateUploaded")
 	info, ierr := d.Files().Stat(cipherFilePathUploaded)
 	if ierr == nil {
 		length = info.Size() - cipherStartAt
 	}
 	cipherFile, err = d.Files().Open(cipherFilePathUploaded)
 	if err != nil {
+		// DIMEODS-1262 - Ensure file closed if not nil
+		if cipherFile != nil {
+			cipherFile.Close()
+		}
 		//Try the cached file
+		logger.Debug("useLocalFile checking for FileStateCached")
 		info, ierr := d.Files().Stat(cipherFilePathCached)
 		if ierr == nil {
 			length = info.Size() - cipherStartAt
 		}
 		cipherFile, err = d.Files().Open(cipherFilePathCached)
 		if err != nil {
+			// DIMEODS-1262 - Ensure file closed if not nil
+			if cipherFile != nil {
+				cipherFile.Close()
+			}
 			if os.IsNotExist(err) {
 				return nil, -1, nil
 			}
 			return nil, -1, err
 		}
+	} else {
+		// Update timestamp on file that is being used
+		d.Files().Chtimes(cipherFilePathUploaded, tm, tm)
 	}
 	//We have a file handle.  Seek to where we should start reading the cipher.
+	logger.Debug("useLocalFile found a filehandle")
 	_, err = cipherFile.Seek(cipherStartAt, 0)
 	if err != nil {
 		logger.Error("useLocalFile failed to seek", zap.Int64("cipherStartAt", cipherStartAt))
@@ -135,7 +143,7 @@ func UseLocalFile(logger *zap.Logger, d CiphertextCache, rName FileId, cipherSta
 	}
 	//Update the timestamps to note the last time it was used
 	// This is done here, as well as successful end just in case of failures midstream.
-	tm := time.Now().UTC()
+	logger.Debug("useLocalFile is touching file timestamp", zap.String("cachedfile", string(cipherFilePathCached)))
 	d.Files().Chtimes(cipherFilePathCached, tm, tm)
 
 	return cipherFile, length, nil
@@ -170,6 +178,7 @@ func useP2PFile(logger *zap.Logger, zone CiphertextCacheZone, rName FileId, begi
 			connectionMapMutex.RUnlock()
 
 			if conn == nil {
+				peerCN := config.GetEnvOrDefault(config.OD_PEER_CN, "")
 				insecureSkipVerify := config.GetEnvOrDefault(config.OD_PEER_INSECURE_SKIP_VERIFY, "false") == "true"
 				conn, err = NewTLSClientConn(
 					peer.CA,
@@ -194,16 +203,53 @@ func useP2PFile(logger *zap.Logger, zone CiphertextCacheZone, rName FileId, begi
 				if err == nil {
 					rangeResponse := fmt.Sprintf("bytes=%d-", begin)
 					req.Header.Set("Range", rangeResponse)
-					//P2P does not pass through nginx, so only this value can happen P2P, and we use
-					//2 way SSL to enforce only peers connecting to us.
+					// P2P is direct and does not route through edge/gateway, so only this value can happen P2P.
+					// We use 2 way SSL to enforce only peers connecting to us.
+					PeerSignifier := config.GetEnvOrDefault(config.OD_PEER_SIGNIFIER, "P2P")
 					req.Header.Set("USER_DN", PeerSignifier)
-					res, err := connectionMap[peerKey].Do(req)
-					if err == nil && res != nil && res.StatusCode == http.StatusOK {
+					res, err := conn.Do(req) //connectionMap[peerKey].Do(req)
+					if err != nil {
+						// DIMEODS-1262 - read and close response that we aren't going to use to avoid file leak
+						if res != nil && res.Body != nil {
+							ioutil.ReadAll(res.Body)
+							res.Body.Close()
+						}
+						logger.Error("p2p cannot connect to peer (failed do)",
+							zap.Error(err),
+							zap.String("peerKey", peerKey),
+							zap.String("peerCN", config.GetEnvOrDefault(config.OD_PEER_CN, "")),
+							zap.String("peer.CA", peer.CA),
+							zap.String("peer.Cert", peer.Cert),
+						)
+						// and set connection as nil to force it to be re-established
+						connectionMapMutex.Lock()
+						connectionMap[peerKey] = nil
+						connectionMapMutex.Unlock()
+						continue
+					}
+					// DIMEODS-1262 - Handle status codes that can be returned from this call, namely StatusPartialContent due to byte range performed
+					sc := res.StatusCode
+					statusGood := sc == http.StatusOK || sc == http.StatusPartialContent || sc == http.StatusNotModified
+					if res != nil && statusGood {
 						return res.Body, nil
+					} else {
+						// DIMEODS-1262 - read and close response that we aren't going to use to avoid file leak
+						if res != nil {
+							if res.Body != nil {
+								ioutil.ReadAll(res.Body)
+								res.Body.Close()
+							}
+						}
 					}
 				}
 				if err != nil {
-					logger.Error("p2p cannot connect to peer", zap.Error(err))
+					logger.Error("p2p cannot connect to peer (failed new request)",
+						zap.Error(err),
+						zap.String("peerKey", peerKey),
+						zap.String("peerCN", config.GetEnvOrDefault(config.OD_PEER_CN, "")),
+						zap.String("peer.CA", peer.CA),
+						zap.String("peer.Cert", peer.Cert),
+					)
 				}
 			}
 		}

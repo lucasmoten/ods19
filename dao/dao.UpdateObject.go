@@ -211,7 +211,8 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 		return acmCreated, fmt.Errorf("updateobject error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
-		return acmCreated, util.NewLoggable("updateobject did not affect any rows", nil, zap.String("id", hex.EncodeToString(object.ID)), zap.String("changetoken", object.ChangeToken))
+		// DIMEODS-1262 - log this, but don't return as failure
+		logger.Debug("updateobject did not affect any rows", zap.String("id", hex.EncodeToString(object.ID)), zap.String("changetoken", object.ChangeToken))
 	}
 
 	// Compare properties on database object to properties associated with passed

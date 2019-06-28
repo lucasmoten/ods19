@@ -16,7 +16,9 @@ func GetClientMountPoint() string {
 	version := "0.0"
 	changelogFilePath := os.Getenv("GOPATH") + "/src/bitbucket.di2e.net/dime/object-drive-server/changelog.md"
 	f, _ := os.Open(changelogFilePath)
-	defer f.Close()
+	if f != nil {
+		defer f.Close()
+	}
 	reader := bufio.NewReader(f)
 	re := regexp.MustCompile("## Release (?P<version>[v\\.0-9]*) ")
 	for {

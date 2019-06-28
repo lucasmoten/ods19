@@ -48,10 +48,13 @@ func (s *PermanentStorageLocalData) Download(fOut io.WriterAt, key *string) (int
 		return 0, util.NewLoggable(PermanentStorageNotFoundErrorString, err)
 	}
 	fIn, err := os.Open(fName)
+	// DIMEODS-1262 - ensure file closed if not nil
+	if fIn != nil {
+		defer fIn.Close()
+	}
 	if err != nil {
 		return int64(0), err
 	}
-	defer fIn.Close()
 	readBuffer := make([]byte, 1024)
 	at := int64(0)
 	for {
@@ -76,10 +79,18 @@ func (s *PermanentStorageLocalData) GetStream(key *string, begin, end int64) (io
 	}
 	fIn, err := os.Open(fName)
 	if err != nil {
+		// DIMEODS-1262 - ensure file closed if not nil
+		if fIn != nil {
+			defer fIn.Close()
+		}
 		return nil, err
 	}
 	_, err = fIn.Seek(begin, 0)
 	if err != nil {
+		// DIMEODS-1262 - ensure file closed if not nil
+		if fIn != nil {
+			defer fIn.Close()
+		}
 		return nil, err
 	}
 	return fIn, err

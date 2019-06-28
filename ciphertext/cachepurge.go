@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"os"
 	"path"
-	"runtime/debug"
 	"strings"
 	"time"
 
@@ -30,22 +29,25 @@ const oneWeek = int64(60 * 60 * 24 * 7)
 // CachePurge will periodically delete files that do not need to be in the cache.
 func (d *CiphertextCacheData) CachePurge() {
 	if d.PermanentStorage == nil {
-		d.Logger.Info("permanent storage is nil.  purge is disabled.")
+		d.Logger.Info("cachepurge found that permanent storage is nil.  purge is disabled.")
 		return
 	}
-	d.Logger.Info("cache purge start")
+	d.Logger.Info("cachepurge start")
 	// read from environment variables:
 	//    lowThresholdPercent (floating point 0..1)
 	//    highThresholdPercent (floating point 0..1)
 	//    ageEligibleForEviction (integer seconds)
 	for {
+		d.Logger.Debug("cachepurge iteration begin")
 		//Get the current disk space usage
 		fqCache := d.Files().Resolve(d.Resolve(""))
+		d.Logger.Debug("cachepurge calling syscall.statfs")
 		sfs := syscall.Statfs_t{}
 		err := syscall.Statfs(fqCache, &sfs)
+		d.Logger.Debug("cachepurge got statfs data")
 		if err != nil {
 			d.Logger.Error(
-				"unable to purge on statfs fail",
+				"cachepurge unable to purge on statfs fail",
 				zap.String("filename", fqCache),
 				zap.Error(err),
 			)
@@ -79,16 +81,6 @@ func (d *CiphertextCacheData) CachePurge() {
 }
 
 func cachePurgeIteration(d *CiphertextCacheData, usage float64) {
-	defer func() {
-		if r := recover(); r != nil {
-			d.Logger.Error(
-				"purge crash",
-				zap.Any("context", r),
-				zap.String("stack", string(debug.Stack())),
-			)
-		}
-	}()
-
 	fqCache := d.Files().Resolve(d.Resolve(""))
 	cpsTotal := cachePurgeStats{started: time.Now().UTC()}
 	err := Walk(
@@ -110,7 +102,7 @@ func cachePurgeIteration(d *CiphertextCacheData, usage float64) {
 		zap.Int64("reviewedSize", cpsTotal.reviewedSize))
 	if err != nil {
 		d.Logger.Error(
-			"unable to walk cache",
+			"cachepurge unable to walk cache",
 			zap.String("filename", fqCache),
 			zap.Error(err),
 		)
@@ -121,10 +113,13 @@ type Walker func(fqName string) error
 
 func Walk(fqCache string, walker Walker) error {
 	d, err := os.Open(fqCache)
+	// DIMEODS-1262 - Ensure file closed if not nil
+	if d != nil {
+		defer d.Close()
+	}
 	if err != nil {
 		return err
 	}
-	defer d.Close()
 	for {
 		namesInDirectory, err := d.Readdirnames(400)
 		if err != nil {
@@ -136,15 +131,6 @@ func Walk(fqCache string, walker Walker) error {
 		for _, name := range namesInDirectory {
 			walker(fmt.Sprintf("%s/%s", fqCache, name))
 		}
-		// l := len(namesInDirectory)
-		// for i := 0; i < l; i++ {
-		// 	// avoid double-slash in name, which probably causes a mismatch vs S3
-		// 	if strings.HasSuffix(fqCache, "/") || strings.HasPrefix(namesInDirectory[i], "/") {
-		// 		walker(fmt.Sprintf("%s%s", fqCache, namesInDirectory[i]))
-		// 	} else {
-		// 		walker(fmt.Sprintf("%s/%s", fqCache, namesInDirectory[i]))
-		// 	}
-		// }
 	}
 }
 
@@ -159,19 +145,30 @@ func Walk(fqCache string, walker Walker) error {
 // every time it's downloaded to ensure that we correctly value the file.
 //
 // Behavior:
-//  disk usage below lowThresholdPercent: ignore this file
+//  disk usage below lowThresholdPercent: ignore this file unless there's an overall file limit
 //  disk usage above highThresholdPercent: delete this file if it's old enough for eviction
 //  disk usage in range of ThresholdPercents:
-//      if file is too young to evict at all: ignore this file
+//      if file is too fresh to evict at all: ignore this file
 //      if int(size/(age*age)) == 0: delete this file
 //
-//  The net effect is that some files remain young because they were recently uploaded or fetched.
+//  The net effect is that some files remain fresh because they were recently uploaded or fetched.
 //  Multiplying times filesize recognizes that the penalty for deleting a large file is proportional
 //  to its size.  But because 1/(age*age) drops rapidly, even very large files will quickly become
 //  eligible for deletion if not used.  If there are many files that are accessed often, then the large files
 //  will be selected for deletion.  Large files that keep getting used will stay in cache
 //  as long as they keep getting used.  Because they take N times longer to get stamped due to
 //  the length of the file transfer, it is fair to make it take N times longer to get evicted.
+//
+// The following is a simplified table of how long a file may take to be evicted based on
+// its size if it isn't accessed and the cache needs to make room to stay within thresholds
+//		20 KB				2.5 minutes
+//		400 KB				11 minutes
+//		1 MB				17 minutes
+//		5 MB				37.5 minutes
+//		20 MB				1 hour, 15 minutes
+//		100 MB				2 hours, 47 minutes
+//		1 GB				About 9 hours
+//		4 GB				About 18 hours
 //
 //  The graph will look like a sawtooth between lowThresholdPercent and highThresholdPercent, where there is
 //  a delay in size drops that is dependent on size and doubly dependent on age since last access.
@@ -196,7 +193,7 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, usage float64, cps *c
 		}
 		// Log this unhandled error and return
 		d.Logger.Error(
-			"unable to stat file",
+			"cachepurge unable to stat file",
 			zap.String("filename", fqName),
 			zap.Error(err),
 		)
@@ -210,15 +207,15 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, usage float64, cps *c
 		return nil
 	}
 
-	//Size and age determine the value of the file
+	//Size and time since last accessed determine the value of the file
 	t := f.ModTime().UTC().Unix() //In units of second
 	n := time.Now().UTC().Unix()  //In units of second
 	ageInSeconds := (n - t) + 1   // Ensure > 0
 	size := f.Size()
-	ext := path.Ext(string(fqName))
-
 	cps.reviewedSize += size
 
+	// Action based on file extension which denotes state in the cache
+	ext := path.Ext(string(fqName))
 	switch {
 	//Note that cached files are persistently stored already
 	case ext == FileStateCached:
@@ -227,16 +224,19 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, usage float64, cps *c
 		oldEnoughToEvict := (ageInSeconds > d.ageEligibleForEviction)
 		hitFileLimit := (d.fileLimit > 0 && cps.reviewedCount > d.fileLimit)
 		fullEnoughToEvict := (usage > d.lowThresholdPercent || hitFileLimit)
-		// ie: highThresholdPercent 0.9, lowThresholdPercent 0.7, usage 0.95:
-		// usage is 0.05 over high threshold percent,
-		// usage is 0.25 over low threshold percent
-		// so delete a percentage of the data randomly based upon usage over the high (in this case 25% of data)
-		mustEvict := ((usage-d.highThresholdPercent) > 0 && rand.Float64() < (usage-d.lowThresholdPercent)) || hitFileLimit
-		// expect usage to sawtooth between lowThresholdPercent and highThresholdPercent
-		// with the size of the file compared to its age denoting whether it should evict until we hit highThresholdPercent
-		if (oldEnoughToEvict && fullEnoughToEvict) || mustEvict {
-			sizeAgeRetainmentScore := size / (ageInSeconds * ageInSeconds)
-			if sizeAgeRetainmentScore == 0 || mustEvict {
+		if oldEnoughToEvict && fullEnoughToEvict {
+			// Determine if should evict by age compared to file size
+			sizeAgeEviction := (size / (ageInSeconds * ageInSeconds)) < 1
+			// Random selection when usage above high treshold percent
+			// ie: highThresholdPercent 0.9, lowThresholdPercent 0.7, usage 0.95:
+			//   usage is 0.05 over high threshold percent,
+			//   usage is 0.25 over low threshold percent
+			//   so delete a percentage of the data randomly by low threshold based upon usage over the high threshold
+			randomlySelected := ((usage-d.highThresholdPercent) > 0 && rand.Float64() < (usage-d.lowThresholdPercent))
+			// Determine if should evict by disk threshold limits
+			diskLimitEviction := randomlySelected || hitFileLimit
+
+			if sizeAgeEviction || diskLimitEviction {
 				//Name is fully qualified, so use os call!
 				errReturn := os.Remove(fqName)
 				if errReturn != nil {
@@ -279,7 +279,7 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, usage float64, cps *c
 			cps.errorCount++
 			cps.errorSize += size
 			// There is something clearly wrong here.  Log it
-			d.Logger.Error("ciphertextcache file not uploaded after a long time", zap.String("filename", fqName))
+			d.Logger.Error("ciphertextcache file not uploaded after a week", zap.String("filename", fqName))
 			return nil
 		}
 	default:
@@ -319,6 +319,14 @@ func filePurgeVisit(d *CiphertextCacheData, fqName string, usage float64, cps *c
 }
 
 func attemptToEmptyFile(d *CiphertextCacheData, fqName string) {
+	// Sanity check to make sure this isn't being called for a file in the uploaded state.
+	// As this function will truncate its contents, we don't want to risk having a valid upload
+	// have its file contents wiped out before evacuated to PermanentStorage
+	ext := path.Ext(string(fqName))
+	if ext == FileStateUploaded {
+		d.Logger.Warn("Logic Error! attemptToEmptyFile was called on a file in Uploaded state! Skipping")
+		return
+	}
 	if _, err := os.Stat(fqName); err == nil {
 		e := os.Truncate(fqName, 0)
 		if e != nil {

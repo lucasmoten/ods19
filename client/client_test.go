@@ -342,6 +342,10 @@ func TestRoundTrip(t *testing.T) {
 		}
 
 		fReader, err := os.Open(fullFilePath)
+		// DIMEODS-1262 - ensure file closed if not nil
+		if fReader != nil {
+			defer fReader.Close()
+		}
 		if err != nil {
 			t.Log(err)
 		}

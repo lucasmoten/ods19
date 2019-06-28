@@ -297,12 +297,28 @@ func insertUserAOCachePart(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser
 	if err != nil {
 		return fmt.Errorf("insertUserAOCachePart error executing add statement, %s", err.Error())
 	}
-	ra, err := result.RowsAffected()
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("insertUserAOCachePart error determining rows affected, %s", err.Error())
 	}
-	if ra == 0 {
-		return fmt.Errorf("insertUserAOCachePart did not affect any rows, %s", err.Error())
+	if rowsAffected <= 0 {
+		// DIMEODS-1262 - log this, but don't return as failure
+		if acmvalue != nil {
+			logger.Debug(
+				"insertUserAOCachePart did not affect any rows",
+				zap.String("userid", hex.EncodeToString(user.ID)),
+				zap.Bool("isallowed", isallowed),
+				zap.Int64("acmkeyid", acmkey.ID),
+				zap.Int64("acmvalueid", acmvalue.ID),
+			)
+		} else {
+			logger.Debug(
+				"insertUserAOCachePart did not affect any rows",
+				zap.String("userid", hex.EncodeToString(user.ID)),
+				zap.Bool("isallowed", isallowed),
+				zap.Int64("acmkeyid", acmkey.ID),
+			)
+		}
 	}
 	return nil
 }

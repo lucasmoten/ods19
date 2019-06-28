@@ -177,8 +177,12 @@ func (h *AppServer) InitRegex() {
 		ObjectProperties: route("/objects/(?P<objectId>[0-9a-fA-F]{32})/properties$"),
 		ObjectCopy:       route("/objects/(?P<objectId>[0-9a-fA-F]{32})/copy$"),
 		ObjectStream:     route("/objects/(?P<objectId>[0-9a-fA-F]{32})/stream(\\.[0-9a-zA-Z]*)?$"),
-		Ciphertext:       route("/ciphertext/(?P<zone>[0-9a-zA-Z_]*)?/(?P<rname>[0-9a-fA-F]{64})$"),
-		BulkProperties:   route("/objects/properties$"),
+		// Ciphertext is used for peer-2-peer calls. The value of 'rname' equates to the contentConnector value on the object.
+		// The reason this length can be exactly either 52 or 64 is due to a code change that went in with 1.0.20
+		// Current rname values are created with a length of 26 bytes (52 hexadecimal) while older ones were 32 (64 hexadecimal).
+		// The convenience function CreateRandomName() in ciphertext/ciphertext.go  centralizes this
+		Ciphertext:     route("/ciphertext/(?P<zone>[0-9a-zA-Z_]*)?/(?P<rname>([0-9a-fA-F]{52}|[0-9a-fA-F]{64}))$"),
+		BulkProperties: route("/objects/properties$"),
 		// - actions on objects
 		ObjectChangeOwner:  route("/objects/(?P<objectId>[0-9a-fA-F]{32})/owner/(?P<newOwner>.*)$"),
 		ObjectDelete:       route("/objects/(?P<objectId>[0-9a-fA-F]{32})/trash$"),
@@ -225,15 +229,20 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var matched string
 	beginTSInMS := util.NowMS()
 
-	sessionID := r.Header.Get("Session-Id")
+	sessionID := ""
+	if h.Conf.HeaderSessionIDEnabled {
+		sessionID = r.Header.Get(h.Conf.HeaderSessionIDName)
+	}
 	sessionRequestCount := 0
 	if len(sessionID) == 0 {
 		sessionID = newSessionID()
 	}
 	sessionRequestCount = sessionRequestCount + 1
-	w.Header().Add("Session-Id", sessionID)
-	if len(h.Version) > 0 {
-		w.Header().Add("odrive-server", h.Version)
+	if h.Conf.HeaderSessionIDEnabled {
+		w.Header().Add(h.Conf.HeaderSessionIDName, sessionID)
+	}
+	if len(h.Version) > 0 && h.Conf.HeaderServerEnabled {
+		w.Header().Add(h.Conf.HeaderServerName, h.Version)
 	}
 
 	w.Header().Add(h.Conf.EncryptableFunctions.EncryptionStateHeader())
@@ -603,6 +612,8 @@ func (h *AppServer) publishError(gem events.GEM, herr *AppError) {
 		gem.Payload.Audit = audit.WithActionTargetMessages(gem.Payload.Audit, herr.Msg)
 	}
 	gem.Payload.Audit = audit.WithACMCopies(gem.Payload.Audit)
+	gem.Payload.Audit = audit.WithDefaultEDH(gem.Payload.Audit)
+	gem.Payload.Audit = audit.WithResourceCopies(gem.Payload.Audit)
 	h.EventQueue.Publish(gem)
 }
 func (h *AppServer) publishSuccess(gem events.GEM, w http.ResponseWriter) {
@@ -613,6 +624,8 @@ func (h *AppServer) publishSuccess(gem events.GEM, w http.ResponseWriter) {
 	}
 	gem.Payload.Audit = audit.WithActionTargetMessages(gem.Payload.Audit, status)
 	gem.Payload.Audit = audit.WithACMCopies(gem.Payload.Audit)
+	gem.Payload.Audit = audit.WithDefaultEDH(gem.Payload.Audit)
+	gem.Payload.Audit = audit.WithResourceCopies(gem.Payload.Audit)
 	h.EventQueue.Publish(gem)
 }
 

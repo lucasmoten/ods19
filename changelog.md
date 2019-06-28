@@ -17,8 +17,22 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Release v1.0.20 (April 2, 2019)
+## Release v1.0.21 (Unreleased) 51
 ---------------------
+* CFG: Jenkins and Docker updated to build with 1.12.6b4
+* CFG: New environment variables for response headers `OD_HEADER_BANNER_ENABLED`, `OD_HEADER_BANNER_NAME`, `OD_HEADER_SERVER_ENABLED`, `OD_HEADER_SERVER_NAME`, `OD_HEADER_SESSIONID_ENABLED`, `OD_HEADER_SESSIONID_NAME`
+* DOC: API Documentation now includes guidance for status code 409
+* FIX: File handle leak in ciphertext cache calls to peers
+* FIX: Ciphertext uri matcher for peer requests
+* FIX: Default path to token.jar set back to 1.0
+* ENH: Additional logging in file handling, API operations for session correlation
+* ENH: Expose number of file descriptors and go routines in /stats
+* ENH: Support for OID roots when retrieving files or directory listings by path
+* TST: Tested with > 15M file retrievals spread across multiple instances with and without peering
+
+## Release v1.0.20 (April 2, 2019) 50
+---------------------
+**50th Release**
 * DB: The database schema is now 20190225. A migration _may_ be performed.
   * This is a deviation from past versions where service upgrades required migrating the database
   * This version will by default be compatible with 20170726 and 20190225 schema to support blue/green.
@@ -43,7 +57,7 @@ FORMAT: 1A
 * TST: Adding quadinstance-docker-compose.yml with 2 aacs
 * TST: Tested with 30000+ unique ACMS and 4 instances in a cluster.
 
-## Release v1.0.19 (February 20, 2019)
+## Release v1.0.19 (February 20, 2019) 49
 ---------------------
 * DOC: Readme no longer references GitLab, gives description of service, and guidance on making RPM
 * DOC: API Documentation adds clarity on Bulk Delete operation
@@ -64,7 +78,7 @@ FORMAT: 1A
 * CFG: Add new environment variables for setting encrypted mode `OD_ENCRYPT_ENABLED`
 * OPS: GLIBC dependencies now included and will be pushed to repos by Jenkins
 
-## Release v1.0.18 (November 14, 2018)
+## Release v1.0.18 (November 14, 2018) 48
 ---------------------
 * DOC: Release notes that complement this changelog have been migrated for posterity
 * DOC: System Admin Guide updated with FIPS 140-2 info
@@ -88,7 +102,7 @@ FORMAT: 1A
 * REF: DAO tests no longer depend on server package
 * CFG: Server timeouts in docker-compose set to allow up to 60 seconds to write response
 
-## Release v1.0.17 (September 24, 2018)
+## Release v1.0.17 (September 24, 2018) 47
 ---------------------
 * FIX: Postprocessing list/search filtering now includes TotalRows
 * REF: Dev & Build process now use DIAS Simulator 1.1.0
@@ -100,7 +114,7 @@ FORMAT: 1A
 * NEW: Jenkins support for building binaries and docker images
 * NEW: Added support for configuring maximum lifetime of database connections using `OD_DB_CONNMAXLIFETIME`
 
-## Release v1.0.16 (June 29, 2018)
+## Release v1.0.16 (June 29, 2018) 46
 ---------------------
 * ENH: Filters can now be applied against custom properties for list/search operations
 * ENH: Permissions for objects will now be returned in a deterministic order by grantee
@@ -109,7 +123,7 @@ FORMAT: 1A
 * NEW: Added restore version support to the golang client libraries
 * ENH: Removed ChangeToken check for individual property modifications during update
 
-## Release v1.0.15 (April 27, 2018)
+## Release v1.0.15 (April 27, 2018) 45
 ---------------------
 * FIX: Copy operation no longer requires header for Content-Type to be set
 * ENH: Listing group objects can now be done using user as group
@@ -123,7 +137,7 @@ FORMAT: 1A
 * DEV: A minimal docker-compose file is now available for use by integrator
 * FIX: No longer defaulting ServerName expectation of peer nodes within an instance
 
-## Release v1.0.14 (February 28, 2018)
+## Release v1.0.14 (February 28, 2018) 44
 --------------------
 * FIX: Added missing interface definition in golang client libraries
 * CFG: Developer configuration updates for UI
@@ -140,7 +154,7 @@ FORMAT: 1A
 * FIX: Close HTTP Header Injection attacks in headers returned when retrieving file streams
 * NEW: Added expunge support to the golang client libraries
 
-## Release v1.0.13 (January 31, 2018)
+## Release v1.0.13 (January 31, 2018) 43
 ---------------------
 * FIX: Corrected count of objects and groups when listing groups
 * FIX: Minor spelling discrepancy for Kafka logging on startup
@@ -153,7 +167,7 @@ FORMAT: 1A
 * ENH: Successive updates on same object is now throttled to 50ms
 * NEW: Added revision support to the golang client libraries
 
-## Release v1.0.12 (December 20, 2017)
+## Release v1.0.12 (December 20, 2017) 42
 --------------------
 * ENH: Enriched Payload of Events to include more fields from object for change actions
 * REF: Changed imports to bitbucket.di2e.net/dime/object-drive-server
@@ -167,7 +181,7 @@ FORMAT: 1A
 * ENH: Object names are trimmed of whitespace on create/update
 * NEW: Added search support to the golang client libraries
 
-## Release v1.0.11 (November 15, 2017)
+## Release v1.0.11 (November 15, 2017) 41
 --------------------
 * FIX: Gitlab CI configuration for docker login
 * NEW: Allowable ciphers can be provided as environment variable `OD_SERVER_CIPHERS`
@@ -178,7 +192,7 @@ FORMAT: 1A
 * DOC: Adding indication of exact build numbers to generated docs
 * DOC: Corrections to API docs for delete operations
 
-## Release v1.0.10 (October 17, 2017)
+## Release v1.0.10 (October 17, 2017) 40
 --------------------
 * FIX: Resolve deadlock on inserting user ao cache
 * FIX: Allow saving new grantees introduced in user ao cache
@@ -198,36 +212,36 @@ FORMAT: 1A
 * ENH: Restructured RPM generation to include version and build number
 * FIX: Database migration tool no longer hard codes name as `odrive-database`
 
-## Release v1.0.9 (August 28, 2017)
+## Release v1.0.9 (August 28, 2017) 39
 --------------------
 * FIX: Migration for 20170630 combined drops fk_object_permission_grantee before ix_grantee
 
-## Release v1.0.8 (August 17, 2017)
+## Release v1.0.8 (August 17, 2017) 38
 --------------------
 * ENH: DB upgrade tool now checks which version of MySQL to leverage performance_schema for reading variables
 * ENH: DB Migration for 20170630 rollup now creates constraints and indexes prior to transforming data
 * ENH: DB Migration for 20170630 now has significant time improvement for processing permissions
 
-## Release v1.0.7 (August 8, 2017)
+## Release v1.0.7 (August 8, 2017) 37
 --------------------
 * ENH: Events emitted with action_mode setup, and ACM value copied to all nested components with an ACM field
 * FIX: Database initialize scripts drop of constraints and tables to support CI builds
 * ENH: CI build docker-compose converted to version 2
 
-## Release v1.0.6 (July 26, 2017)
+## Release v1.0.6 (July 26, 2017) 36
 --------------------
 * FIX: Database migrations run from rollup script 20170630 now use correct value for permission mac
 * DB: The database schema is now 20170726
 
-## Release v1.0.5 (July 24, 2017)
+## Release v1.0.5 (July 24, 2017) 35
 --------------------
 * ENH: Added backwards compatibility for AAC 1.0.x when checking user snippets
 
-## Release v1.0.4 (July 19, 2017)
+## Release v1.0.4 (July 19, 2017) 34
 --------------------
 * FIX: Subquery returns more than 1 row error when creating objects fixed. Schema is now 20170718
 
-## Release v1.0.3 (July 17, 2017)
+## Release v1.0.3 (July 17, 2017) 33
 --------------------
 * FIX: Cleanup uploaded files when metadata validation fails during create/update
 * ENH: Log when we need to drain files up to S3 after an odrive restart
@@ -235,7 +249,7 @@ FORMAT: 1A
 * FIX: Change Owner now validates that caller is member of group when changing ownership to group
 * ENH: Resource Strings for OwnedBy and Permission may be specified in short form `group/{projectname}/{groupname}`
 
-## Release v1.0.2 (June 30, 2017)
+## Release v1.0.2 (June 30, 2017) 32
 --------------------
 * ENH: Instrumentation added for database, aac, and overall http calls - made visible in /stats for now
 * ENH: If database schema does not match expected, service will startup in readonly mode, and switch to writeable once migration is complete
@@ -246,14 +260,14 @@ FORMAT: 1A
 * FIX: Startup performance issue relating to scenarios with large caches
 * FIX: Corrected count of groups for user
 
-## Release v1.0.1.26 (June 8, 2017)
+## Release v1.0.1.26 (June 8, 2017) 31
 --------------------
 * FIX: Resolve deadlock on create/update where newly recognized ACM being inserted by multiple concurrent transactions
 * CFG: Optional setting for deadlock retries can be configured via `OD_DEADLOCK_RETRYCOUNTER`, default is 5
 * CFG: Optional setting for deadlock retry delay can be configured via `OD_DEADLOCK_RETRYDELAYMS`, default is 333
 * FIX: API call to change owner referencing a user that is not yet cached will no longer fail
 
-## Release v1.0.1.25 (June 5, 2017)
+## Release v1.0.1.25 (June 5, 2017) 30
 --------------------
 * ENH: Clean up error message when cannot connect to AAC
 * ENH: allow impersonating requests in the client library with new config field "Impersonation"
@@ -266,7 +280,7 @@ FORMAT: 1A
 * FIX: Flatten resulting ACM after Normalizing Permissions and ACM to ensure f_* keys can be joined appropriately
 * ENH: Improve insert/update performance by only checking to associate ACM to users when a new ACM is created
 
-## Release v1.0.1.24 (May 10, 2017)
+## Release v1.0.1.24 (May 10, 2017) 29
 --------------------
 * ENH: Add option for CLI tools `odrive` and `odrive-database` to print DB schema version
 * FIX: Corrected spelling of `namePathDelimiter` in API documentation for create object
@@ -278,13 +292,13 @@ FORMAT: 1A
 * NEW: Add `applyRecursively` field to API endpoint for changing object ownership
 * NEW: Add MoveObject method to the client library
 
-## Release v1.0.1.23 (May 4, 2017)
+## Release v1.0.1.23 (May 4, 2017) 28
 --------------------
 * FIX: Allow Content-Transfer-Encoding to be specified as binary, 8bit, or 7bit.
 * FIX: Allow Content-Type to support charset values of utf-8 or iso-8859-1.
 * NEW: Operation /groups returns information about groups for which caller is a member of that owns objects.
 
-## Release v1.0.1.22 (May 1, 2017)
+## Release v1.0.1.22 (May 1, 2017) 27
 --------------------
 * DOC: API Documentation now denotes length, minvalue, maxlength, maxvalue.
 * FIX: Permit contentType to be specified during update without a content stream.
@@ -296,7 +310,7 @@ FORMAT: 1A
 * FIX: Build process will install graphviz to satisfy plantuml need for dot for diagram generation.
 * DOC: API Documentation denotes that content streams should not have encoding or character sets.
 
-## Release v1.0.1.21 (April 21, 2017)
+## Release v1.0.1.21 (April 21, 2017) 26
 --------------------
 * CFG: Docker container for metadatadb innodb_buffer_pool_size being set to 128MB.
 * FIX: Docker container for aac upgraded to 1.1.4
@@ -307,11 +321,11 @@ FORMAT: 1A
 * DB: The database schema version is now 20170421. A migration should be performed.
 * CFG: Set export `OD_OPTION_409=true` in env.sh to enable performance improvements.
 
-## Release v1.0.1.20 (April 19, 2017)
+## Release v1.0.1.20 (April 19, 2017) 25
 --------------------
 * FIX: Migration for 20170331 now forces creation of aacflatten function if not present.
 
-## Release v1.0.1.19 (April 18, 2017)
+## Release v1.0.1.19 (April 18, 2017) 24
 --------------------
 * FIX: Spelling correction to content type assignment for files having extension xlsx.
 * DOC: API Documentation now denotes Get Bulk Properties is via POST method.
@@ -323,7 +337,7 @@ FORMAT: 1A
 * DB: The database schema version is now 20170331. A migration should be performed.
 * CFG: Set export `OD_OPTION_409=true` in env.sh to enable performance improvements.
 
-## Release v1.0.1.18 (March 31, 2017)
+## Release v1.0.1.18 (March 31, 2017) 23
 --------------------
 * FIX: Check that cache files exist before attempting to remove them.
 * FIX: Path Delimiter validation for Update Object to permit slashes.
@@ -338,24 +352,24 @@ FORMAT: 1A
 * REF: Internal refactor for retrieving object revisions.
 * FIX: Normalized checks on Content-Type expecting application/json to permit charset.
 
-## Release v1.0.1.17 (March 2, 2017)
+## Release v1.0.1.17 (March 2, 2017) 22
 --------------------
 * FIX: Path Delimiter for internal storage is now using record separator in place of forward slash.
 * ENH: Create Object operation may specify namePathDelimiter to override default.
 * ENH: Latest git tag is embedded in --version flag.
 
-## Release v1.0.1.16 (February 28, 2017)
+## Release v1.0.1.16 (February 28, 2017) 21
 --------------------
 * FIX: Bugfix to listing shared objects and trash for users with apostrophe in DN.
 * ENH: Logging now renders timestamp in RFC3339 format intsead of seconds since unix epoch.
 * ENH: RPM installation will now set to start service on run levels 3 and 5 via chkconfig.
 
-## Release v1.0.1.15 (February 22, 2017)
+## Release v1.0.1.15 (February 22, 2017) 20
 --------------------
 * ENH: Build number and git commit sha1 now exposed with the --version flag.
 * FIX: Uncached large files no longer truncated at 16MB during download.
 
-## Release v1.0.1.14 (February 9, 2017)
+## Release v1.0.1.14 (February 9, 2017) 19
 --------------------
 * FIX: Service process now assigned group and user when sudoing down from root.
 * ENH: Orphaned files that cannot be removed due to permissions are renamed to permit service termination.
@@ -366,7 +380,7 @@ FORMAT: 1A
 * FIX: Improve durability of connection to AAC to reduce unnecessary rpc client shutdown.
 * FIX: Close connection to ZK when polling for AAC connection every 30 sec.
 
-## Release v1.0.1.13 (January 30, 2017)
+## Release v1.0.1.13 (January 30, 2017) 18
 --------------------
 * ENH: Calculated full path and unique names for objects. Slashes are now restricted characters from updates.
 * ENH: Bulk Delete objects: DELETE /objects
@@ -378,7 +392,7 @@ FORMAT: 1A
 * NEW: Emit events with audit payload for all handlers to support ICS 500-27
 * NEW: Build Changelog into HTML and link from API Documentation
 
-## Release v1.0.1.12 (December 23, 2016)
+## Release v1.0.1.12 (December 23, 2016) 17
 --------------------
 * ENH: Determination of content type from file extension on upload expanded to larger list
 * ENH: Autoscale shutdown from life cycle messages now handle 10 messages at a time, configured via `OD_AWS_SQS_BATCHSIZE`
@@ -388,18 +402,18 @@ FORMAT: 1A
 * FIX: Service init script only changes ownership of certificates if they are found under `OD_BASEPATH`
 * DOC: API Documentation updated with sections for empty trash and retrieving bulk objects
 
-## Release v1.0.1.11 (December 9, 2016)
+## Release v1.0.1.11 (December 9, 2016) 16
 -----------------
 * ENH: Added more logging for AAC Client connection when receiving announce data
 * FIX: RPM adds user and group if not present. Now deletes only on uninstall, not upgrades.
 
-## Release v1.0.1.10 (December 8, 2016)
+## Release v1.0.1.10 (December 8, 2016) 15
 --------------------
 * FIX: RPM updated to create services group, and change ownership to object-drive:services
 * ENH: Performance improvements to database list/search operations, and additional indexing on key columns
 * FIX: Object-Drive Service Init script no longer assigns group to process to prevent failure.
 
-## Release v1.0.1.9 (December 2, 2016)
+## Release v1.0.1.9 (December 2, 2016) 14
 -------------------
 * ENH: Command `serviceTest` renamed to `test`
 * FIX: RPM updated to use /opt/services/object-drive-1.0 installation path, object-drive-1.0 for servicename, object-drive for username
@@ -409,7 +423,7 @@ FORMAT: 1A
 * DOC: API Documentation updated with Change Owner and List Objects at Root For Group
 * ENH: ACL Impersonation Whitelist read from different location in object-drive.yml
 
-## Release v1.0.1.8 (November 17, 2016)
+## Release v1.0.1.8 (November 17, 2016) 13
 -------------------
 * NEW: CORS support in the server
 * DOC: API Documentation now reflects changes where OwnedBy field is now stored and returned in serialized resource format
@@ -420,7 +434,7 @@ FORMAT: 1A
 * FIX: Port announced for service in ZK is based upon actual server port selected
 * FIX: Prevent non-owners from moving objects
 
-## Release v1.0.1.7 (November 4, 2016)
+## Release v1.0.1.7 (November 4, 2016) 12
 ----------------
 * NEW: AAC is discoverable from its own ZK cluster, not just default ZK.
 * NEW: Additional debug logging around database code for updating ACMs on objects.
@@ -428,7 +442,7 @@ FORMAT: 1A
 * NEW: Configuration for environment variable `OD_AWS_ENDPOINT` is now read from `OD_AWS_S3_ENDPOINT`
 * NEW: Support for Peer2Peer retrieval of content streams when running multiple nodes of object drive in an instance.
 
-## Release v1.0.1.6 (October 27, 2016)
+## Release v1.0.1.6 (October 27, 2016) 11
 ----------------
 * FIX: odrive-database utility now allows cascade override from config file
 * FIX: odrive-database migration script 2-down fixed
@@ -437,7 +451,7 @@ FORMAT: 1A
 * NEW: Update Object request supports passing updated permissions in new 1.0.1.16 format
 * NEW: Create Object request supports providing permissions in new 1.0.1.16 format
 
-## Release v1.0.1.5 (October 11, 2016)
+## Release v1.0.1.5 (October 11, 2016) 10
 ----------------
 * NEW: disableS3 with an empty S3 Bucket variable.  it works with load balancing due to p2p caching.
 * FIX: large stalls as load balanced clients wait for S3 ciphertext is taken care of with p2p caching. it created instability when viewing large videos.
@@ -449,7 +463,7 @@ FORMAT: 1A
   longer returning the complete list with redacted folder names
 * NEW: Autoscaling report gets messages triggered by a CloudWatch alarm writes to SQS so we shut down and tell Autoscale
 
-## Release v1.0.1.4 (September 14, 2016)
+## Release v1.0.1.4 (September 14, 2016) 9
 ----------------
 * FIX: Shared with Me now excludes objects shared to Everyone
 * NEW: Allow many more config values to be specified in odrive.yml
@@ -464,7 +478,7 @@ FORMAT: 1A
 * FIX: List of objects /shared to others will exclude those that are private to the user.
 * NEW: CloudWatch metrics that enable the setting of alarms for AWS deployments (an auto-scaling prerequisite)
 
-## Release v1.0.1 (September 2, 2016)
+## Release v1.0.1 (September 2, 2016) 2
 --------------
 * ENH: Connection to Zookeeper recovery improvements when timed out
 * ENH: Full ACM share information captured for individual permission grants
@@ -474,7 +488,7 @@ FORMAT: 1A
 * FIX: odrive binary will run as user `odrive` when installed with yum package
 * FIX: Major Release number bump at customer request
 
-## Release v0.1.0 (August 23, 2016)
+## Release v0.1.0 (August 23, 2016) 1
 --------------
 * REF: Remove broken STANDALONE flag
 * FIX: Return 404 instead of 500 when retrieving an object properties and given ID is invalid.

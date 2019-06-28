@@ -71,24 +71,24 @@ func sendErrorResponseRaw(logger *zap.Logger, w *http.ResponseWriter, herr *AppE
 		//Pre-append our fields to the field list
 		var fields []zapcore.Field
 		fields = append(fields, zap.Int("status", herr.Code))
-		fields = append(fields, zap.String("message", herr.Msg))
-		fields = append(fields, zap.Error(fmt.Errorf(herrString)))
-		fields = append(fields, zap.String("file", herr.File))
-		fields = append(fields, zap.Int("line", herr.Line))
+		if len(herr.Msg) > 0 {
+			fields = append(fields, zap.String("message", herr.Msg))
+		}
+		// actual error (3xx-5xx)
+		if herr.Code >= http.StatusMultipleChoices {
+			fields = append(fields, zap.Error(fmt.Errorf(herrString)))
+			fields = append(fields, zap.String("file", herr.File))
+			fields = append(fields, zap.Int("line", herr.Line))
+		}
 		for _, v := range herr.Fields {
 			fields = append(fields, v)
 		}
-		if herr.Code < http.StatusBadRequest {
-			//1xx-3xx series
+		// Treat anything other than server errors as informational
+		if herr.Code < http.StatusInternalServerError {
 			logger.Info("transaction finish", fields...)
 		} else {
-			if herr.Code != http.StatusInternalServerError {
-				//4xx series (client error)
-				logger.Info("transaction finish", fields...)
-			} else {
-				//5xx series (server error)
-				logger.Error("transaction finish", fields...)
-			}
+			// The rest are 5xx series, which we want to log as error
+			logger.Error("transaction finish", fields...)
 		}
 		mutex.Lock()
 		counters[counterKey{herr.Code, herr.File, herr.Line}]++

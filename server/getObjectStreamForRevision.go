@@ -113,7 +113,7 @@ func (h AppServer) getObjectStreamForRevision(ctx context.Context, w http.Respon
 
 func getFileKeyAndCheckAuthAndObjectState(ctx context.Context, h AppServer, dbObject *models.ODObject) (*AppError, []byte) {
 	var fileKey []byte
-
+	logger := LoggerFromContext(ctx)
 	ok, userPermission := isUserAllowedToReadWithPermission(ctx, dbObject)
 	if !ok {
 		return NewAppError(http.StatusForbidden, errors.New("Forbidden"), "Forbidden - User does not have permission to read/view this object"), fileKey

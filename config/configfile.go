@@ -11,10 +11,13 @@ import (
 func LoadYAMLConfig(path string) (AppConfiguration, error) {
 	var conf AppConfiguration
 	f, err := os.Open(path)
+	// DIMEODS-1262 - ensure file closed if not nil
+	if f != nil {
+		defer f.Close()
+	}
 	if err != nil {
 		return conf, err
 	}
-	defer f.Close()
 
 	contents, err := ioutil.ReadAll(f)
 	if err != nil {

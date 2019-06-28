@@ -22,6 +22,7 @@ func (h AppServer) doBulkOwnership(ctx context.Context, w http.ResponseWriter, r
 
 	dao := DAOFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
+	logger := LoggerFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	gem, _ := GEMFromContext(ctx)
 	gem.Action = "update"

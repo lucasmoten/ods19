@@ -59,10 +59,13 @@ func theTest(t *testing.T, cipher config.DoCipherByReaderWriter) {
 
 	//Open the file for read
 	fPlain, err = os.Open(plaintextName)
+	// DIMEODS-1262 - ensure file closed if not nil
+	if fPlain != nil {
+		defer fPlain.Close()
+	}
 	if err != nil {
 		t.Errorf("Failed to open plaintext for read:%v", err)
 	}
-	defer fPlain.Close()
 
 	//Prepare to write ciphertext
 	fCipher, err := os.Create(ciphertextName)
@@ -117,30 +120,39 @@ func basicCipherRaw(t *testing.T, data []byte, ciphertextName string, byteRange 
 	defer os.Remove(replaintextName)
 
 	fCipher, err := os.Open(ciphertextName)
+	// DIMEODS-1262 - ensure file closed if not nil
+	if fCipher != nil {
+		defer fCipher.Close()
+	}
 	if err != nil {
 		t.Errorf("unable to reopen ciphertext:%v", err)
 	}
-	defer fCipher.Close()
 
 	//Prepare to write recovered plaintext
 	fReplain, err := os.Create(replaintextName)
+	// DIMEODS-1262 - ensure file closed if not nil
+	if fReplain != nil {
+		defer fReplain.Close()
+	}
 	if err != nil {
 		t.Errorf("Failed to open recovered plaintext for write:%v", err)
 	}
-	defer fReplain.Close()
 
 	//Generate plaintext again
 	_, _, err = cipher(logger, fCipher, fReplain, key, iv, "reread", byteRange)
 	fReplain.Close()
 
 	//Read replain into a variable and compare it with expected result.
-	fReplain, err = os.Open(replaintextName)
+	fReplain2, err := os.Open(replaintextName)
+	// DIMEODS-1262 - ensure file closed if not nil
+	if fReplain2 != nil {
+		defer fReplain2.Close()
+	}
 	if err != nil {
 		t.Errorf("Failed to reopen recovered plaintext for read: %v", err)
 	}
-	defer fReplain.Close()
 
-	reData, err := ioutil.ReadAll(fReplain)
+	reData, err := ioutil.ReadAll(fReplain2)
 	if err != nil {
 		t.Errorf("Failed to re-read replaintext into byte array:%v", err)
 	}

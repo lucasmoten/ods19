@@ -47,6 +47,15 @@ import (
 -}
 */
 
+// NewGuide ...
+func NewGuide(Prefix string, Number string) components_thrift.Guide {
+	guide := components_thrift.Guide{
+		Prefix: stringPtr(Prefix),
+		Number: stringPtr(Number),
+	}
+	return guide
+}
+
 // NewModifiedResourcePair ...
 func NewModifiedResourcePair(original components_thrift.Resource, modified components_thrift.Resource) components_thrift.ModifiedResourcePair {
 	var pair components_thrift.ModifiedResourcePair
@@ -75,6 +84,15 @@ func NewResource(Name string, Location string, Size int64, Type string, SubType 
 		Identifier: stringPtr(Identifier),
 	}
 	return resource
+}
+
+// NewResponsibleEntity ...
+func NewResponsibleEntity(Country string, Organization string) components_thrift.ResponsibleEntity {
+	re := components_thrift.ResponsibleEntity{
+		Country:      stringPtr(Country),
+		Organization: stringPtr(Organization),
+	}
+	return re
 }
 
 // WithCreator ...
@@ -224,11 +242,8 @@ func WithEnterpriseDataHeader(e events_thrift.AuditEvent, edh components_thrift.
 }
 
 // WithResponsibleEntity ...
-func WithResponsibleEntity(e events_thrift.AuditEvent, country, org, subOrg string) events_thrift.AuditEvent {
-	re := components_thrift.ResponsibleEntity{
-		Country:      stringPtr(country),
-		Organization: stringPtr(org),
-	}
+func WithResponsibleEntity(e events_thrift.AuditEvent, country string, org string) events_thrift.AuditEvent {
+	re := NewResponsibleEntity(country, org)
 	e.ResponsibleEntity = &re
 	return e
 }
@@ -496,5 +511,103 @@ func WithACMCopies(e events_thrift.AuditEvent) events_thrift.AuditEvent {
 		}
 	}
 
+	return e
+}
+
+// GetActionTargetValueByIdentityType looks over existing action targets for identity type and returns value
+func GetActionTargetValueByIdentityType(e events_thrift.AuditEvent, identityType string) string {
+	for _, at := range e.ActionTargets {
+		if *at.IdentityType == identityType {
+			return *at.Value
+		}
+	}
+	return ""
+}
+
+// WithDefaultEDH will populate a generic enterprise data header based upon current information in the audit struct
+func WithDefaultEDH(e events_thrift.AuditEvent) events_thrift.AuditEvent {
+
+	// Initialize top level if not set - Other calls should be assigning this
+	if e.Edh == nil {
+		edh := components_thrift.Edh{}
+		e = WithEnterpriseDataHeader(e, edh)
+	}
+	// If we have no ACM because not set to Edh in WithACMCopies, then audit will fail
+	if e.Edh.Acm == nil {
+		acm := acm_thrift.Acm{}
+		e.Edh.Acm = &acm
+	}
+	// Fake out the guide with defaults. Technically, these need to be assigned by a central
+	// authority for every created thing to be meaningful. That's a massive bottleneck for
+	// obvious reasons. A prefix can help address that, allowing systems to generate their
+	// own record identifiers in the number field, but there is not a streamlined efficient
+	// way to get a prefix, nor is there a lookup to validate assignments.  Because of this
+	// we set the prefix to a value that should pass the audit schema, but won't actually
+	// be valid.
+	// <xs:pattern value="guide://([1-9][0-9]{0,15}|0)/[A-Za-z0-9_\-\.]{1,36}"/>
+	if e.Edh.Guide == nil {
+		prefix := "9999999999999999" // 16 9's
+		number := GetActionTargetValueByIdentityType(e, "FILE_OBJECT")
+		if len(number) == 0 {
+			number = "00000-00000-00000-00000-00000-00000"
+		}
+		guide := NewGuide(prefix, number)
+		e.Edh.Guide = &guide
+	}
+	// Fake out the responsible entity with defaults.
+	if e.Edh.ResponsibleEntity == nil {
+		e = WithResponsibleEntity(e, "USA", "DIA")
+	}
+	// Set security information based on acm
+	if e.Edh.Security == nil {
+		s := components_thrift.Security{}
+		e.Edh.Security = &s
+	}
+	if e.Edh.Security.ClassificationReason == nil {
+		e.Edh.Security.ClassificationReason = e.Edh.Acm.ClassifRsn
+	}
+	if e.Edh.Security.ClassifiedBy == nil {
+		e.Edh.Security.ClassifiedBy = e.Edh.Acm.ClassifBy
+	}
+	if e.Edh.Security.DeclassDate == nil {
+		e.Edh.Security.DeclassDate = e.Edh.Acm.DeclassDt
+	}
+	if e.Edh.Security.DerivedFrom == nil {
+		e.Edh.Security.DerivedFrom = e.Edh.Acm.DerivFrom
+	}
+	if e.Edh.Security.OwnerProducer == nil {
+		e.Edh.Security.OwnerProducer = stringPtr("USA")
+	}
+
+	return e
+}
+
+// WithResourceCopies will copy any modified resources that are listed in ModifiedPairList into the
+// Resources list if they dont already exist
+func WithResourceCopies(e events_thrift.AuditEvent) events_thrift.AuditEvent {
+	// If there are no pairs, then nothing to do
+	if e.ModifiedPairList == nil {
+		return e
+	}
+	// Look over all the pairs (there should be only one)
+	for _, mp := range e.ModifiedPairList {
+		// We only care about the modified result
+		mr := mp.Modified
+		// Flag for found
+		f := false
+		// Now look over resources
+		for _, r := range e.Resources {
+			// See if we have it or not
+			if mr.Identifier == r.Identifier {
+				f = true
+				break
+			}
+		}
+		// Did we find it
+		if !f {
+			// Wasn't found in resources, add it
+			e.Resources = append(e.Resources, mr)
+		}
+	}
 	return e
 }

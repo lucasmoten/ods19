@@ -161,6 +161,7 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 	d := DAOFromContext(ctx)
 	rs := getKnownResourceStringsFromUserGroups(ctx)
 	caller, _ := CallerFromContext(ctx)
+	logger := LoggerFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	gem, _ := GEMFromContext(ctx)
 	gem.Action = "update"

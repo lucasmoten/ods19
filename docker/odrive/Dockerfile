@@ -1,4 +1,4 @@
-FROM library/golang:1.11.5
+FROM library/golang:1.12.6
 ARG BUILD_NUMBER="1"
 ARG COMMIT_ID="1"
 ARG BUILD_VERSION="1"

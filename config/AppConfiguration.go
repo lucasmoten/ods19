@@ -266,6 +266,21 @@ type ServerSettingsConfiguration struct {
 	Version string
 	// VersionMajorMinor is set at runtime based on compile time flags
 	VersionMajorMinor string
+	// HeaderBannerEnabled indicates whether or not the classification banner is returned for file stream responses
+	HeaderBannerEnabled       bool
+	HeaderBannerEnabledString string `yaml:"header_banner_enabled"`
+	// HeaderBannerName indicates the name of the header field for the classification banner.
+	HeaderBannerName string `yaml:"header_banner_name"`
+	// HeaderServerEnabled indicates whether or not the server identifier header is returned in responses
+	HeaderServerEnabled       bool
+	HeaderServerEnabledString string `yaml:"header_server_enabled"`
+	// HeaderServerName indicates the name of the header field for the server identifier
+	HeaderServerName string `yaml:"header_server_name"`
+	// HeaderSessionIDEnabled indicates whether or not the session identifier header is returned in responses
+	HeaderSessionIDEnabled       bool
+	HeaderSessionIDEnabledString string `yaml:"header_sessionid_enabled"`
+	// HeaderSessionIDName indicates the name of the header field for the session identifier
+	HeaderSessionIDName string `yaml:"header_sessionid_name"`
 }
 
 // UserAOCacheConfiguration holds configuration for managing user ao cache rebuilds
@@ -475,7 +490,7 @@ func GetTokenJarKey() ([]byte, error) {
 	}
 	tokenJar := os.Getenv(OD_TOKENJAR_LOCATION)
 	if tokenJar == "" {
-		tokenJar = "/opt/services/object-drive-1.1/token.jar"
+		tokenJar = "/opt/services/object-drive-1.0/token.jar"
 	}
 	key, err := encryptor.KeyFromTokenJar(tokenJar, rootPassword)
 	if err != nil {
@@ -590,6 +605,14 @@ func newServerSettingsFromEnv(confFile AppConfiguration, opts ValueOpts) ServerS
 	} else {
 		settings.PathToTemplateFiles = cascade(OD_SERVER_TEMPLATE_ROOT, confFile.ServerSettings.PathToTemplateFiles, "")
 	}
+
+	// Headers
+	settings.HeaderBannerEnabled = CascadeBoolFromString(OD_HEADER_BANNER_ENABLED, confFile.ServerSettings.HeaderBannerEnabledString, true)
+	settings.HeaderBannerName = cascade(OD_HEADER_BANNER_NAME, confFile.ServerSettings.HeaderBannerName, "Classification-Banner")
+	settings.HeaderServerEnabled = CascadeBoolFromString(OD_HEADER_SERVER_ENABLED, confFile.ServerSettings.HeaderServerEnabledString, true)
+	settings.HeaderServerName = cascade(OD_HEADER_SERVER_NAME, confFile.ServerSettings.HeaderServerName, "odrive-server")
+	settings.HeaderSessionIDEnabled = CascadeBoolFromString(OD_HEADER_SESSIONID_ENABLED, confFile.ServerSettings.HeaderSessionIDEnabledString, true)
+	settings.HeaderSessionIDName = cascade(OD_HEADER_SESSIONID_NAME, confFile.ServerSettings.HeaderSessionIDName, "Session-Id")
 
 	return settings
 }
@@ -1090,6 +1113,12 @@ func setEnvironmentFromConfiguration(conf AppConfiguration) {
 	os.Setenv(OD_EVENT_ZK_ADDRS, strings.Join(conf.EventQueue.ZKAddrs, ","))
 	// os.Setenv(OD_EXTERNAL_HOST,
 	// os.Setenv(OD_EXTERNAL_PORT,
+	os.Setenv(OD_HEADER_BANNER_ENABLED, strconv.FormatBool(conf.ServerSettings.HeaderBannerEnabled))
+	os.Setenv(OD_HEADER_BANNER_NAME, conf.ServerSettings.HeaderBannerName)
+	os.Setenv(OD_HEADER_SERVER_ENABLED, strconv.FormatBool(conf.ServerSettings.HeaderServerEnabled))
+	os.Setenv(OD_HEADER_SERVER_NAME, conf.ServerSettings.HeaderServerName)
+	os.Setenv(OD_HEADER_SESSIONID_ENABLED, strconv.FormatBool(conf.ServerSettings.HeaderSessionIDEnabled))
+	os.Setenv(OD_HEADER_SESSIONID_NAME, conf.ServerSettings.HeaderSessionIDName)
 	// os.Setenv(OD_LOG_LEVEL,
 	// os.Setenv(OD_LOG_LOCATION,
 	// os.Setenv(OD_LOG_MODE,

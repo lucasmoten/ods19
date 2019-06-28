@@ -20,6 +20,7 @@ func (h AppServer) getBulkProperties(ctx context.Context, w http.ResponseWriter,
 
 	dao := DAOFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
+	logger := LoggerFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
 	gem.Action = "access"
 	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")

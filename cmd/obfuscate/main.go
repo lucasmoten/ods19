@@ -22,7 +22,7 @@ func help() {
 	export OD_ENCRYPT_PASSWORD=ENC{...}
 	
     #Environment variable OD_TOKENJAR_LOCATION is the full location of token.jar
-    #The default is /opt/services/object-drive-1.1/token.jar if not specified
+    #The default is /opt/services/object-drive-1.0/token.jar if not specified
     #If you are in the build environment, then token.jar is at ../../defaultcerts/token.jar relative to the binary
 
     #Environment variable OD_TOKENJAR_PASSWORD is key used to encode token.jar

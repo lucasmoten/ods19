@@ -134,10 +134,13 @@ func (d *CiphertextCacheData) haveCanary(rName FileId) (string, *util.Loggable) 
 
 	// Check the value to see if it matches expected
 	f, err := os.Open(nameCached)
+	// DIMEODS-1262 - ensure file closed if not nil
+	if f != nil {
+		defer f.Close()
+	}
 	if err != nil {
 		return "", util.NewLoggable("ciphertextcache expected open fail", err)
 	}
-	defer f.Close()
 	haveBytes, err := ioutil.ReadAll(f)
 	if err != nil {
 		return "", util.NewLoggable("ciphertextcache expected read fail", err)
@@ -223,7 +226,7 @@ func (d *CiphertextCacheData) Files() FileSystem {
 	return d.files
 }
 
-// DrainUploadedFilesToSafetyRaw is the drain without the goroutine at the end
+// DrainUploadedFilesToSafetyRaw is the drain
 func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 	if d.PermanentStorage == nil {
 		d.Logger.Info("permanent storage is nil. unable to drain files to safety")
@@ -238,22 +241,35 @@ func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 			func(fqName string) (errReturn error) {
 				ext := path.Ext(fqName)
 				if ext == FileStateUploaded {
-					d.Logger.Info("there is an uploaded file that we need to handle", zap.String("fqName", fqName))
+					d.Logger.Debug("background drain uploaded files to safety has identified an uploaded file that may need to be handled", zap.String("fqName", fqName))
 					f, err := os.Stat(fqName)
 					if err != nil {
-						d.Logger.Error("there is an uploaded file that we cannot stat", zap.Error(err))
+						if os.IsNotExist(err) {
+							d.Logger.Debug("background drain uploaded files to safety skipping file as it no longer exists (evac'd by main routine)", zap.String("fqName", fqName))
+							return nil
+						}
+						d.Logger.Warn("background drain uploaded files to safety found an uploaded file that we cannot stat", zap.Error(err))
 						return err
 					}
 					if f.IsDir() {
-						d.Logger.Info("we have a directory with a .uploaded extension in the cache", zap.String("fqName", fqName))
+						d.Logger.Warn("background drain uploaded files to safety found a directory with a .uploaded extension in the cache", zap.String("fqName", fqName))
 						return nil
 					}
 					size := f.Size()
 					fBase := path.Base(fqName)
 					rName := FileId(fBase[:len(fBase)-len(ext)])
-					err = d.Writeback(rName, size)
-					if err != nil {
-						d.Logger.Warn("error draining cache", zap.Error(err))
+					// DIMEODS-1262 - Get the age of the file since last accessed. Only attempt writeback here if its old enough
+					t := f.ModTime().UTC().Unix() //In units of second
+					n := time.Now().UTC().Unix()  //In units of second
+					ageInSeconds := n - t
+					// Age of file last accessed compared to age eligible for eviction to permit request routines to writeback without race
+					if ageInSeconds >= d.ageEligibleForEviction {
+						err = d.Writeback(rName, size)
+						if err != nil {
+							d.Logger.Warn("background drain uploaded files to safety encountered error draining cache", zap.Error(err))
+						}
+					} else {
+						d.Logger.Debug("background drain uploaded files to safety has determined that the uploaded file is still too young and will allow normal upload to perform writeback", zap.String("fqName", fqName), zap.Int64("ageEligibleForEviction", d.ageEligibleForEviction), zap.Int64("ageInSeconds", ageInSeconds))
 					}
 					return err
 				}
@@ -261,8 +277,10 @@ func (d *CiphertextCacheData) DrainUploadedFilesToSafetyRaw() {
 			},
 		)
 		if err != nil {
-			d.Logger.Warn("unable to walk cache", zap.Error(err))
+			d.Logger.Warn("background drain uploaded files to safety is unable to walk cache", zap.Error(err))
 		}
+		// DIMEODS-1262 - additional logging to clarify whats going on
+		d.Logger.Debug("background drain uploaded files to safety is done iteration", zap.Float64("sleepTime", d.walkSleep.Seconds()))
 		time.Sleep(d.walkSleep)
 	}
 }
@@ -289,7 +307,18 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 
 	//Get a filehandle to read the file to write back to permanent storage
 	fIn, err := d.Files().Open(outFileUploaded)
+	// DIMEODS-1262 - Ensure file closed if not nil
+	if fIn != nil {
+		defer fIn.Close()
+	}
 	if err != nil {
+		if os.IsNotExist(err) {
+			d.Logger.Debug(
+				"file no longer exists for writeback",
+				zap.String("filename", d.Files().Resolve(outFileUploaded)),
+			)
+			return nil
+		}
 		d.Logger.Warn(
 			"cant writeback file",
 			zap.String("filename", d.Files().Resolve(outFileUploaded)),
@@ -297,7 +326,6 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 		)
 		return err
 	}
-	defer fIn.Close()
 
 	if size > 0 && d.PermanentStorage != nil {
 		d.Logger.Debug(
@@ -322,6 +350,13 @@ func (d *CiphertextCacheData) Writeback(rName FileId, size int64) error {
 	outFileCached := d.Resolve(NewFileName(rName, FileStateCached))
 	err = d.Files().Rename(outFileUploaded, outFileCached)
 	if err != nil {
+		if os.IsNotExist(err) {
+			d.Logger.Debug(
+				"file no longer exists for rename",
+				zap.String("filename", d.Files().Resolve(outFileUploaded)),
+			)
+			return nil
+		}
 		d.Logger.Warn(
 			"unable to rename",
 			zap.String("from", d.Files().Resolve(outFileUploaded)),
@@ -371,8 +406,8 @@ func (d *CiphertextCacheData) BackgroundRecache(rName FileId, totalLength int64)
 	cachingPath := d.Resolve(NewFileName(rName, FileStateCaching))
 	cachedPath := d.Resolve(NewFileName(rName, FileStateCached))
 
-	logger.Info(
-		"caching file",
+	logger.Debug(
+		"background recache file",
 		zap.String("filename", string(cachedPath)),
 	)
 
@@ -387,7 +422,7 @@ func (d *CiphertextCacheData) BackgroundRecache(rName FileId, totalLength int64)
 			return
 		}
 	}
-	logger.Info(
+	logger.Debug(
 		"background recache done",
 		zap.String("filename", string(cachedPath)),
 	)
@@ -397,19 +432,21 @@ func (d *CiphertextCacheData) BackgroundRecache(rName FileId, totalLength int64)
 func (d *CiphertextCacheData) Recache(rName FileId) error {
 
 	// If it's already cached, then we have no work to do
+	d.Logger.Debug("recache from PermanentStorage checking if already cached")
 	foutCached := d.Resolve(NewFileName(rName, FileStateCached))
 	if _, err := d.Files().Stat(foutCached); os.IsExist(err) {
 		return nil
 	}
 
 	// We are not supposed to be trying to get multiple copies of the same ciphertext into cache at same time
+	d.Logger.Debug("recache from PermanentStorage checking if already caching")
 	foutCaching := d.Resolve(NewFileName(rName, FileStateCaching))
 	if _, err := d.Files().Stat(foutCaching); os.IsExist(err) {
 		return err
 	}
 
 	if d.PermanentStorage != nil {
-		d.Logger.Info(
+		d.Logger.Debug(
 			"recache from PermanentStorage",
 			zap.String("key", string(rName)),
 		)
@@ -431,7 +468,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 	if err != nil {
 		if d.PermanentStorage != nil {
 			if err.Error() != PermanentStorageNotFoundErrorString {
-				d.Logger.Info("download from permanent storage was not successful", zap.Error(err))
+				d.Logger.Warn("download from permanent storage was not successful", zap.Error(err))
 			} else {
 				if rName == "canary" {
 					return err
@@ -510,7 +547,7 @@ func (d *CiphertextCacheData) Recache(rName FileId) error {
 		)
 		return err
 	}
-	d.Logger.Info("fetched ciphertext", zap.String("rname", string(rName)))
+	d.Logger.Debug("fetched ciphertext", zap.String("rname", string(rName)))
 	return nil
 }
 

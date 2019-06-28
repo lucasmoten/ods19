@@ -27,7 +27,14 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 	gem.Action = "access"
 	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventAccess")
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "ACCESS")
-	if r.Header.Get("USER_DN") != ciphertext.PeerSignifier {
+	// DIMEODS-1262 - Immediately check for whether this operation is allowed
+	if strings.ToLower(os.Getenv(config.OD_PEER_ENABLED)) != "true" {
+		herr := NewAppError(http.StatusForbidden, nil, "Requests for ciphertext from peers is not currently authorized")
+		h.publishError(gem, herr)
+		return herr
+	}
+	PeerSignifier := config.GetEnvOrDefault(config.OD_PEER_SIGNIFIER, "P2P")
+	if r.Header.Get("USER_DN") != PeerSignifier {
 		herr := NewAppError(http.StatusForbidden, fmt.Errorf("p2p required to get ciphertext"), "forbidden")
 		h.publishError(gem, herr)
 		return herr
@@ -42,14 +49,6 @@ func (h AppServer) getCiphertext(ctx context.Context, w http.ResponseWriter, r *
 		h.publishError(gem, herr)
 		return herr
 	}
-
-	// Check if peer enabled to service this request
-	if strings.ToLower(os.Getenv(config.OD_PEER_ENABLED)) != "true" {
-		herr := NewAppError(http.StatusForbidden, nil, "Requests for ciphertext from peers is not currently authorized")
-		h.publishError(gem, herr)
-		return herr
-	}
-
 	//Specify which ciphertext out of which drain provider we are looking for
 	zone := ciphertext.CiphertextCacheZone(captureGroups["zone"])
 	rName := ciphertext.FileId(captureGroups["rname"])

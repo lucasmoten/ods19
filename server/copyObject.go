@@ -22,6 +22,7 @@ func (h AppServer) copyObject(ctx context.Context, w http.ResponseWriter, r *htt
 	dao := DAOFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
 	user, _ := UserFromContext(ctx)
+	logger := LoggerFromContext(ctx)
 	gem, _ := GEMFromContext(ctx)
 	gem.Action = "create"
 	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventCreate")

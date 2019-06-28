@@ -32,12 +32,15 @@ func (h AppServer) favicon(ctx context.Context, w http.ResponseWriter, r *http.R
 	}
 
 	f, err := os.Open(path)
+	// DIMEODS-1262 - ensure file closed if not nil
+	if f != nil {
+		defer f.Close()
+	}
 	if err != nil {
 		herr := NewAppError(http.StatusNotFound, nil, errStaticResourceNotFound)
 		h.publishError(gem, herr)
 		return herr
 	}
-	defer f.Close()
 	w.Header().Set("Content-Type", "image/x-icon")
 	_, err = io.Copy(w, f)
 	if err != nil {

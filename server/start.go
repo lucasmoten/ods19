@@ -407,6 +407,9 @@ func zkTracking(app *AppServer, conf config.AppConfiguration) {
 			ciphertext.ScheduleSetPeers(peerMap)
 		}
 		zookeeper.TrackAnnouncement(app.DefaultZK, zkConf.AnnouncementPoint+"/https", odriveAnnouncer)
+	} else {
+		// DIMEODS-1262 - Add additional logging to positively note that we're not peer enabled
+		logger.Info("ignoring existence of peers for cipher cache. OD_PEER_ENABLED is set to a value other than true", zap.String("od_peer_enabled", os.Getenv(config.OD_PEER_ENABLED)))
 	}
 
 	aacAnnouncer := func(_ string, announcements map[string]zookeeper.AnnounceData) {

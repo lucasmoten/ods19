@@ -8,6 +8,8 @@
 .idea
 .DS_Store
 .vscode
+XDG_CACHE_HOME
+XDG_CACHE_HOME/*
 
 # Ignore build dirs
 out

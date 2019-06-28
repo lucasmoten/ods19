@@ -1,0 +1,267 @@
+version: '3.5'
+
+services:
+
+  dias:
+    image: docker-dime.di2e.net/dime/dias-simulator:1.1.0    
+    networks:
+      - my-network-name
+    ports:
+      - "8443:443"
+
+  zk:
+    image: docker-dime.di2e.net/backend/zookeeper:3.4.9
+    networks:
+      - my-network-name
+    ports:
+      - "2181:2181"
+
+  redis:
+    image: docker-dime.di2e.net/backend/redis:3.2.2
+    networks:
+      - my-network-name
+    depends_on:
+      - zk
+
+  aac:
+    hostname: aac
+    image: docker-dime.di2e.net/backend/aac-service:1.2.6-SNAPSHOT
+    networks:
+      - my-network-name
+    tty: true
+    stdin_open: true
+    ports:
+      - "9093:9000"
+      - "7444:7444"
+    environment:
+        - COM_DECIPHERNOW_SERVER_CONFIG_ZK_ZOOKEEPERCONNECTION=zk:2181
+        - COM_DECIPHERNOW_SERVER_CONFIG_ZK_ANNOUNCEMENTPOINT=/cte/service/aac/1.2
+        - COM_DECIPHERNOW_SERVER_CONFIG_TLS_TRUSTSTORE=/opt/services/resources/certs/truststore.jks
+        - COM_DECIPHERNOW_SERVER_CONFIG_TLS_KEYSTORE=/opt/services/resources/certs/twlserver.jks
+        - COM_DECIPHERNOW_SERVER_CONFIG_THRIFT_PORT=9000
+        - COM_DECIPHERNOW_SERVER_CONFIG_REDIS_FAIL_SLEEPMILLISECONDS=1000
+        - COM_DECIPHERNOW_SERVER_CONFIG_REDIS_FAIL_LOGRETRYCOUNT=60
+        - GOV_IC_CTE_AAC_CONFIG_REDIS_FAIL_SLEEPMILLISECONDS=1000
+        - GOV_IC_CTE_AAC_CONFIG_REDIS_FAIL_LOGRETRYCOUNT=60
+        - REDIS_HOST=redis
+        - ZOOKEEPER_URL=zk:2181
+        - CLOUDSHARE_DIAS_ATTRIBUTE_SERVICE_ENDPOINT=https://dias/ws/services/DIASMessageReceiverService
+    depends_on:
+      - zk
+      - redis
+      - dias
+
+  postgres:
+    image: docker-dime.di2e.net/backend/postgres:9.4
+    networks:
+      - my-network-name
+    depends_on:
+      - zk
+
+  cte-user-service:
+    hostname: cte-user-service
+    image: docker-dime.di2e.net/dime/user-service:1.0.1-SNAPSHOT
+    networks:
+      - my-network-name
+    environment:
+        - ELASTICSEARCH_HOST=es
+        - ZK_HOST=zk
+        - JAVAX_PERSISTENCE_JDBC_URL=jdbc:postgresql://postgres:5432/chimera_test
+        - ZK_ANNOUNCEPOINT_AAC=/cte/service/aac/1.2
+        - ZOOKEEPER_URL=zk:2181
+        - GOV_IC_CTE_SERVER_CONFIG_ZK_ZOOKEEPERCONNECTION=zk:2181
+    ports:
+      - "7472:8443"
+    depends_on:
+      - zk
+      - aac
+      - postgres      
+
+  metadatadb:
+    image: deciphernow/metadatadb:latest
+    #image: docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.20b4
+    networks:
+      - my-network-name
+    #mem_limit: 1024m
+    #cpuset: "0"
+    environment:
+      - MYSQL_CONTAINER_NAME=metadatadb
+      - MYSQL_USER=dbuser
+      - MYSQL_DATABASE=metadatadb
+      - MYSQL_ROOT_PASSWORD=dbRootPassword
+      - MYSQL_PASSWORD=dbPassword
+      - OD_ENCRYPT_MASTERKEY
+    ports:
+      - 3306:3306
+    command: "./docker-entrypoint.sh mysqld_safe"
+
+  odrive:
+    hostname: odrive
+    image: deciphernow/odrive-bc:latest
+    #image: docker-dime.di2e.net/dime/object-drive-server:1.0.20b4
+    networks:
+      - my-network-name
+    environment:
+        - OD_AAC_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
+        - OD_AAC_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
+        - OD_AAC_CN=twl-server-generic2
+        - OD_AAC_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.key.pem
+        - OD_AAC_INSECURE_SKIP_VERIFY=true
+        - OD_AAC_WARMUP_TIME=30
+        - OD_AAC_RECHECK_TIME=30
+        - OD_AWS_ACCESS_KEY_ID
+        - OD_AWS_CLOUDWATCH_INTERVAL=0
+        - OD_AWS_REGION
+        - OD_AWS_S3_BUCKET
+        - OD_AWS_SECRET_ACCESS_KEY
+        - OD_CACHE_EVICTAGE=60
+        - OD_CACHE_FILELIMIT=10
+        - OD_CACHE_FILESLEEP=1
+        - OD_CACHE_HIGHTHRESHOLDPERCENT=75
+        - OD_CACHE_LOWTHRESHOLDPERCENT=65
+        - OD_CACHE_PARTITION
+        - OD_CACHE_ROOT
+        - OD_CACHE_WALKSLEEP=20
+        - OD_DB_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/trust
+        - OD_DB_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
+        - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
+        - OD_DB_HOST=metadatadb
+        - OD_DB_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
+        - OD_DB_PASSWORD=dbPassword
+        - OD_DB_PORT=3306
+        - OD_DB_RECHECK_TIME=30
+        - OD_DB_SCHEMA=metadatadb
+        - OD_DB_USERNAME=dbuser
+        - OD_ENCRYPT_ENABLED
+        - OD_ENCRYPT_MASTERKEY
+        - OD_EVENT_KAFKA_ADDRS=
+        - OD_EVENT_PUBLISH_FAILURE_ACTIONS=*
+        - OD_EVENT_PUBLISH_SUCCESS_ACTIONS=access,create,delete,list,undelete,unknown,update,zip
+        - OD_EVENT_TOPIC
+        - OD_EVENT_ZK_ADDRS=zk:2181
+        - OD_LOG_LEVEL=INFO
+        - OD_PEER_CN=twl-server-generic2
+        - OD_PEER_ENABLED=false
+        - OD_PEER_INSECURE_SKIP_VERIFY=true
+        - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
+        - OD_SERVER_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/trust.pem
+        - OD_SERVER_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.cert.pem
+        - OD_SERVER_CIPHERS=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA
+        - OD_SERVER_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.key.pem
+        - OD_ZK_AAC=/cte/service/aac/1.2/thrift
+        - OD_ZK_RECHECK_TIME=30
+    depends_on:
+        - metadatadb
+        - aac
+        - zk
+        - dias
+
+  odrive2:
+    hostname: odrive2
+    image: deciphernow/odrive-bc:latest
+    #image: docker-dime.di2e.net/dime/object-drive-server:1.0.20b4
+    networks:
+      - my-network-name
+    environment:
+        - OD_AAC_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
+        - OD_AAC_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.cert.pem
+        - OD_AAC_CN=twl-server-generic2
+        - OD_AAC_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.key.pem
+        - OD_AAC_INSECURE_SKIP_VERIFY=true
+        - OD_AAC_WARMUP_TIME=30
+        - OD_AAC_RECHECK_TIME=30
+        - OD_AWS_ACCESS_KEY_ID
+        - OD_AWS_CLOUDWATCH_INTERVAL=0
+        - OD_AWS_REGION
+        - OD_AWS_S3_BUCKET
+        - OD_AWS_SECRET_ACCESS_KEY
+        - OD_CACHE_EVICTAGE=60
+        - OD_CACHE_FILELIMIT=10
+        - OD_CACHE_FILESLEEP=1
+        - OD_CACHE_HIGHTHRESHOLDPERCENT=75
+        - OD_CACHE_LOWTHRESHOLDPERCENT=65
+        - OD_CACHE_PARTITION
+        - OD_CACHE_ROOT
+        - OD_CACHE_WALKSLEEP=20
+        - OD_DB_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/trust
+        - OD_DB_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-cert.pem
+        - OD_DB_CONN_PARAMS=parseTime=true&collation=utf8_unicode_ci&readTimeout=30s
+        - OD_DB_HOST=metadatadb
+        - OD_DB_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-mysql/id/client-key.pem
+        - OD_DB_PASSWORD=dbPassword
+        - OD_DB_PORT=3306
+        - OD_DB_RECHECK_TIME=30
+        - OD_DB_SCHEMA=metadatadb
+        - OD_DB_USERNAME=dbuser
+        - OD_ENCRYPT_ENABLED
+        - OD_ENCRYPT_MASTERKEY
+        - OD_EVENT_KAFKA_ADDRS=
+        - OD_EVENT_PUBLISH_FAILURE_ACTIONS=*
+        - OD_EVENT_PUBLISH_SUCCESS_ACTIONS=access,create,delete,list,undelete,unknown,update,zip
+        - OD_EVENT_TOPIC
+        - OD_EVENT_ZK_ADDRS=zk:2181
+        - OD_LOG_LEVEL=INFO
+        - OD_PEER_CN=twl-server-generic2
+        - OD_PEER_ENABLED=false
+        - OD_PEER_INSECURE_SKIP_VERIFY=true
+        - OD_SERVER_ACL_WHITELIST1=cn=twl-server-generic2,ou=dae,ou=dia,ou=twl-server-generic2,o=u.s. government,c=us
+        - OD_SERVER_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/trust.pem
+        - OD_SERVER_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.cert.pem
+        - OD_SERVER_CIPHERS=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA
+        - OD_SERVER_KEY=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/server/server.key.pem
+        - OD_ZK_AAC=/cte/service/aac/1.2/thrift
+        - OD_ZK_RECHECK_TIME=30
+    depends_on:
+        - metadatadb
+        - aac
+        - zk
+        - dias
+
+  kafka:
+    hostname: kafka
+    image: wurstmeister/kafka:0.10.2.1
+    networks:
+      - my-network-name
+    environment:
+      KAFKA_HEAP_OPTS: "-Xmx1G -Xms500M"
+      KAFKA_ADVERTISED_HOST: "kafka"
+      KAFKA_ADVERTISED_PORT: "9092"
+      KAFKA_ZOOKEEPER_CONNECT: zk
+      KAFKA_CREATE_TOPICS: odrive-event:1:1
+    ports:
+      - "22181:2181"
+      - "29092:9092"
+      - "9092:9092"
+    volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        
+  proxier:
+    image: nginx
+    networks:
+      - my-network-name
+    environment:
+       - AAC_SERVICE_HOST=aac
+       - AAC_SERVICE_PORT=7444
+       - ODRIVE1_SERVICE_HOST=odrive
+       - ODRIVE1_SERVICE_PORT=4430
+       - ODRIVE2_SERVICE_HOST=odrive2
+       - ODRIVE2_SERVICE_PORT=4430
+       - CTE_USER_SERVICE_HOST=cte-user-service
+       - CTE_USER_SERVICE_PORT=8443
+       - ODRIVE_VERSION=1.0
+    volumes:
+       - .:/tmp/docker
+    ports:
+       - "47080:80"
+       - "8080:443"
+    depends_on:
+       - aac
+       - odrive
+      #  - odrive2
+      #  - odrive3
+      #  - odrive4
+    command: /bin/bash -c "env && envsubst '$$AAC_SERVICE_HOST $$AAC_SERVICE_PORT $$ODRIVE_VERSION $$ODRIVE1_SERVICE_HOST $$ODRIVE1_SERVICE_PORT $$ODRIVE2_SERVICE_HOST $$ODRIVE2_SERVICE_PORT $$CTE_USER_SERVICE_HOST $$CTE_USER_SERVICE_PORT' < /tmp/docker/nginx.conf.tpl > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+
+networks:
+  my-network-name:
+    name: dimeods-1262

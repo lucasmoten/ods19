@@ -15,19 +15,12 @@ RUN yum -y update; \
     yum -y --disablerepo="*" --enablerepo="epel" install python34;
 
 # Go
-RUN wget https://go-boringcrypto.storage.googleapis.com/go1.11.5b4.linux-amd64.tar.gz
-RUN tar -C /usr/local -xzf go1.11.5b4.linux-amd64.tar.gz
+RUN wget https://go-boringcrypto.storage.googleapis.com/go1.12.6b4.linux-amd64.tar.gz
+RUN tar -C /usr/local -xzf go1.12.6b4.linux-amd64.tar.gz
 ENV PATH /usr/local/go/bin:$PATH
 ENV GOPATH /go
 
-# GLIBC 2.14 needed for golang 1.11.5b4 compile with CGO
-#RUN wget http://ftp.gnu.org/gnu/glibc/glibc-2.14.tar.gz 
-#RUN mkdir -p /glibc_install && tar -C /glibc_install -xzf glibc-2.14.tar.gz && cd /glibc_install && cd glibc-2.14 && mkdir build && cd build && ../configure --prefix=/opt/glibc-2.14 && make -j4 && sudo make install
-#ENV LD_LIBRARY_PATH=/opt/glibc-2.14/lib
-#RUN cp /glibc_install/glibc-2.14/build/libc.so.6 /opt/glibc-2.14/lib/libc.so.6
-#RUN mkdir -p /lib64
-#RUN cp /glibc_install/glibc-2.14/build/libc.so.6 /lib64/libc.so.6
-# GLIBC 2.15 Gotten another way...
+# GLIBC 2.15 Gotten manually to satisfy GLIBC 2.14+ as Centos6 comes with GLIBC 2.12
 RUN wget http://ftp.redsleeve.org/pub/steam/glibc-2.15-60.el6.x86_64.rpm
 RUN wget http://ftp.redsleeve.org/pub/steam/glibc-common-2.15-60.el6.x86_64.rpm
 RUN wget http://ftp.redsleeve.org/pub/steam/glibc-devel-2.15-60.el6.x86_64.rpm

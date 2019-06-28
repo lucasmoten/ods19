@@ -20,6 +20,7 @@ func (h AppServer) doBulkMove(ctx context.Context, w http.ResponseWriter, r *htt
 
 	dao := DAOFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
+	logger := LoggerFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	gem, _ := GEMFromContext(ctx)
 	gem.Action = "update"

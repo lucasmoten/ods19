@@ -125,6 +125,7 @@ func (h AppServer) moveObject(ctx context.Context, w http.ResponseWriter, r *htt
 
 	caller, _ := CallerFromContext(ctx)
 	dao := DAOFromContext(ctx)
+	logger := LoggerFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	gem, _ := GEMFromContext(ctx)
 	gem.Action = "update"

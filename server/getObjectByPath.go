@@ -42,9 +42,10 @@ func (h AppServer) getObjectByPath(ctx context.Context, w http.ResponseWriter, r
 	groupobjects := false
 	groupname := ""
 	var targetObject models.ODObject
-	pagingRequest := protocol.PagingRequest{PageSize: 1}
+	pagingRequest := protocol.PagingRequest{PageSize: 1, FilterMatchType: "or"}
 	pagingRequest.FilterSettings = []protocol.FilterSetting{}
 	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, protocol.FilterSetting{FilterField: "name", Condition: "equals", Expression: pathParts[0]})
+	pagingRequest.FilterSettings = append(pagingRequest.FilterSettings, protocol.FilterSetting{FilterField: "id", Condition: "equals", Expression: pathParts[0]})
 	for i, part := range pathParts {
 		if len(part) > 0 {
 			if i == 0 {
@@ -58,6 +59,13 @@ func (h AppServer) getObjectByPath(ctx context.Context, w http.ResponseWriter, r
 					if resultset.PageCount > 0 {
 						targetObject = resultset.Objects[0]
 					} else {
+						// Attempt to treat the part as a root
+						bytesObjectID, err2 := hex.DecodeString(part)
+						if err2 == nil {
+							targetObject.ID = bytesObjectID
+							continue
+						}
+						// No match either way to start the root
 						herr := NewAppError(http.StatusNotFound, err, "No matching objects at root")
 						h.publishError(gem, herr)
 						return herr
@@ -72,8 +80,8 @@ func (h AppServer) getObjectByPath(ctx context.Context, w http.ResponseWriter, r
 					case 1:
 						groupname = part
 					case 2:
-						partFilterSettings := protocol.FilterSetting{FilterField: "name", Condition: "equals", Expression: part}
-						pagingRequest.FilterSettings[0] = partFilterSettings
+						pagingRequest.FilterSettings[0].Expression = part
+						pagingRequest.FilterSettings[1].Expression = part
 						resultset, err := dao.GetRootObjectsByGroup(groupname, user, mapping.MapPagingRequestToDAOPagingRequest(&pagingRequest))
 						if err != nil {
 							herr := NewAppError(http.StatusNotFound, err, "Error finding match at groupfolder")
@@ -85,14 +93,22 @@ func (h AppServer) getObjectByPath(ctx context.Context, w http.ResponseWriter, r
 							// flip back to false as we're no longer at the group root
 							groupobjects = false
 						} else {
+							// Attempt to treat the part as a root
+							bytesObjectID, err2 := hex.DecodeString(part)
+							if err2 == nil {
+								targetObject.ID = bytesObjectID
+								// flip back to false as we're no longer at the group root
+								groupobjects = false
+								continue
+							}
 							herr := NewAppError(http.StatusNotFound, err, "No matching objects in groupfolder")
 							h.publishError(gem, herr)
 							return herr
 						}
 					}
 				} else {
-					partFilterSettings := protocol.FilterSetting{FilterField: "name", Condition: "equals", Expression: part}
-					pagingRequest.FilterSettings[0] = partFilterSettings
+					pagingRequest.FilterSettings[0].Expression = part
+					pagingRequest.FilterSettings[1].Expression = part
 					resultset, err := dao.GetChildObjectsByUser(user, mapping.MapPagingRequestToDAOPagingRequest(&pagingRequest), targetObject)
 					if err != nil {
 						herr := NewAppError(http.StatusNotFound, err, "Error finding match at folder")

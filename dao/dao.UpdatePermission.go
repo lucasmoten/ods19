@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -14,14 +15,15 @@ import (
 // sql calls to the database to update the existing grant
 func (dao *DataAccessLayer) UpdatePermission(permission models.ODObjectPermission) error {
 	defer util.Time("UpdatePermission")()
+	logger := dao.GetLogger()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
-		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
+		logger.Error("Could not begin transaction", zap.Error(err))
 		return err
 	}
-	err = updatePermissionInTransaction(tx, permission)
+	err = updatePermissionInTransaction(logger, tx, permission)
 	if err != nil {
-		dao.GetLogger().Error("Error in UpdatePermission", zap.Error(err))
+		logger.Error("Error in UpdatePermission", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
@@ -29,7 +31,7 @@ func (dao *DataAccessLayer) UpdatePermission(permission models.ODObjectPermissio
 	return err
 }
 
-func updatePermissionInTransaction(tx *sqlx.Tx, permission models.ODObjectPermission) error {
+func updatePermissionInTransaction(logger *zap.Logger, tx *sqlx.Tx, permission models.ODObjectPermission) error {
 
 	updatePermissionStatement, err := tx.Preparex(`update object_permission set 
         modifiedBy = ?
@@ -52,7 +54,8 @@ func updatePermissionInTransaction(tx *sqlx.Tx, permission models.ODObjectPermis
 		return fmt.Errorf("updatePermission error checking result for rows affected, %s", err.Error())
 	}
 	if rowsAffected <= 0 {
-		return fmt.Errorf("updatePermission did not affect any rows, possibly bad id or changetoken")
+		// DIMEODS-1262 - log this, but don't return as failure
+		logger.Debug("updatePermission did not affect any rows, possibly bad id or changetoken", zap.String("id", hex.EncodeToString(permission.ID)), zap.String("changetoken", permission.ChangeToken))
 	}
 
 	return nil

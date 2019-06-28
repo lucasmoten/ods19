@@ -220,16 +220,22 @@ func (h AppServer) acceptObjectUploadStream(ctx context.Context, part *multipart
 
 func (h AppServer) beginUpload(ctx context.Context, caller Caller, part *multipart.Part, obj *models.ODObject, grant *models.ODObjectPermission) (beginDrain func(), herr *AppError, err error) {
 	logger := LoggerFromContext(ctx)
-	logger.Debug("tracking upload start time")
-	beganAt := h.Tracker.BeginTime(performance.UploadCounter)
+	trackingEnabled := false
+	var beganAt performance.BeganJob
+	if trackingEnabled {
+		logger.Debug("tracking upload start time")
+		beganAt = h.Tracker.BeginTime(performance.UploadCounter)
+	}
 	drainFunc, herr, err := h.beginUploadTimed(ctx, caller, part, obj, grant)
 	bytes := obj.ContentSize.Int64
 	//If this failed, then don't count it in our statistics
-	if herr != nil {
-		bytes = 0
+	if trackingEnabled {
+		if herr != nil {
+			bytes = 0
+		}
+		logger.Debug("tracking upload end time")
+		h.Tracker.EndTime(performance.UploadCounter, beganAt, performance.SizeJob(bytes))
 	}
-	logger.Debug("tracking upload end time")
-	h.Tracker.EndTime(performance.UploadCounter, beganAt, performance.SizeJob(bytes))
 	if herr != nil {
 		return nil, herr, err
 	}
@@ -300,13 +306,19 @@ func (h AppServer) beginUploadTimed(ctx context.Context, caller Caller, part *mu
 
 // Writeback wraps the drain provider Writeback with performance tracking
 func (h AppServer) Writeback(obj *models.ODObject, rName ciphertext.FileId, size int64) error {
-	beganAt := h.Tracker.BeginTime(performance.S3DrainTo)
-	err := ciphertext.FindCiphertextCacheByObject(obj).Writeback(rName, size)
-	if err != nil {
-		// if we failed, don't falsify the throughput
-		size = 0
+	trackingEnabled := false
+	var beganAt performance.BeganJob
+	if trackingEnabled {
+		beganAt = h.Tracker.BeginTime(performance.S3DrainTo)
 	}
-	h.Tracker.EndTime(performance.S3DrainTo, beganAt, performance.SizeJob(size))
+	err := ciphertext.FindCiphertextCacheByObject(obj).Writeback(rName, size)
+	if trackingEnabled {
+		// if we failed, don't falsify the throughput
+		if err != nil {
+			size = 0
+		}
+		h.Tracker.EndTime(performance.S3DrainTo, beganAt, performance.SizeJob(size))
+	}
 	return err
 }
 

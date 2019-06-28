@@ -285,6 +285,7 @@ func (h AppServer) updateObject(ctx context.Context, w http.ResponseWriter, r *h
 func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.ODObject) {
 	d := DAOFromContext(ctx)
 	caller, _ := CallerFromContext(ctx)
+	logger := LoggerFromContext(ctx)
 	aacAuth := auth.NewAACAuth(logger, h.AAC)
 	gem, _ := GEMFromContext(ctx)
 	gem.Action = "update"

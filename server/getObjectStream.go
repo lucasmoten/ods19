@@ -98,17 +98,23 @@ func (h AppServer) getObjectStream(ctx context.Context, w http.ResponseWriter, r
 
 	//Performance count this operation
 	ctx = ContextWithGEM(ctx, gem)
-	beganAt := h.Tracker.BeginTime(performance.DownloadCounter)
-	transferred, herr := h.getObjectStreamWithObject(ctx, w, r, dbObject)
-	//Make sure that we count as zero bytes if there was a download error from S3
-	if herr != nil {
-		transferred = 0
+	trackingEnabled := false
+	var beganAt performance.BeganJob
+	if trackingEnabled {
+		beganAt = h.Tracker.BeginTime(performance.DownloadCounter)
 	}
-	h.Tracker.EndTime(
-		performance.DownloadCounter,
-		beganAt,
-		performance.SizeJob(transferred),
-	)
+	transferred, herr := h.getObjectStreamWithObject(ctx, w, r, dbObject)
+	if trackingEnabled {
+		//Make sure that we count as zero bytes if there was a download error from S3
+		if herr != nil {
+			transferred = 0
+		}
+		h.Tracker.EndTime(
+			performance.DownloadCounter,
+			beganAt,
+			performance.SizeJob(transferred),
+		)
+	}
 	//And then return if something went wrong
 	if herr != nil {
 		if herr.Error != nil {
@@ -129,6 +135,7 @@ func (h AppServer) getObjectStreamWithObject(ctx context.Context, w http.Respons
 	var NoBytesReturned int64
 	var err error
 	gem, _ := GEMFromContext(ctx)
+	logger := LoggerFromContext(ctx)
 
 	if dbObject.IsDeleted {
 		var herr *AppError
@@ -312,17 +319,19 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	//without stopping and downloading the object metadata first.
 	//This may also be useful for the client and proxies with respect to caching
 	//as well.
-	if object.RawAcm.Valid {
+	if h.Conf.HeaderBannerEnabled {
 		if object.RawAcm.Valid {
-			banner, err := acmExtractItem("banner", object.RawAcm.String)
-			if err != nil {
-				logger.Warn(
-					"acm parse",
-					zap.Error(err),
-					zap.String("acm", object.RawAcm.String),
-				)
-			} else {
-				w.Header().Set("Classification-Banner", sanitizeAgainstCRLFInHeader(banner))
+			if object.RawAcm.Valid {
+				banner, err := acmExtractItem("banner", object.RawAcm.String)
+				if err != nil {
+					logger.Warn(
+						"acm parse",
+						zap.Error(err),
+						zap.String("acm", object.RawAcm.String),
+					)
+				} else {
+					w.Header().Set(h.Conf.HeaderBannerName, sanitizeAgainstCRLFInHeader(banner))
+				}
 			}
 		}
 	}
@@ -383,6 +392,7 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 		}
 	}
 
+	logger.Debug("cipher file being resolved", zap.String("id", hex.EncodeToString(object.ID)), zap.String("contentConnector", object.ContentConnector.String))
 	d := ciphertext.FindCiphertextCacheByObject(object)
 	rName := ciphertext.FileId(object.ContentConnector.String)
 	cipherFilePathCached := d.Resolve(ciphertext.NewFileName(rName, ciphertext.FileStateCached))
@@ -391,20 +401,31 @@ func (h AppServer) getAndStreamFile(ctx context.Context, object *models.ODObject
 	var cipherReader io.ReadCloser
 
 	//Pull the file from the cache
+	logger.Debug("cipher file being pulled", zap.String("contentConnector", object.ContentConnector.String))
 	cipherReader, isLocalPuller, err = d.NewPuller(logger, rName, totalLength, cipherStartAt, -1)
+	// Ensure reader is closed even for errors as part of fix for DIMEODS-1262
+	if cipherReader != nil {
+		defer cipherReader.Close()
+	}
 	if err != nil {
 		herr := NewAppError(http.StatusInternalServerError, err, err.Error())
 		h.publishError(gem, herr)
 		return NoBytesReturned, herr
 	}
-	defer cipherReader.Close()
 	//If it didn't come from the files in the cache, then make sure we ReCache it for future use
 	//TODO: it might be desirable to only do this probabilistically
 	if !isLocalPuller {
+		logger.Debug("cipher file was not local will do background recache")
 		go func() {
-			beganAt := h.Tracker.BeginTime(performance.S3DrainFrom)
+			trackingEnabled := false
+			var beganAt performance.BeganJob
+			if trackingEnabled {
+				beganAt = h.Tracker.BeginTime(performance.S3DrainFrom)
+			}
 			d.BackgroundRecache(rName, object.ContentSize.Int64)
-			h.Tracker.EndTime(performance.S3DrainFrom, beganAt, performance.SizeJob(fullLength))
+			if trackingEnabled {
+				h.Tracker.EndTime(performance.S3DrainFrom, beganAt, performance.SizeJob(fullLength))
+			}
 		}()
 	}
 

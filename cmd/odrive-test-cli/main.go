@@ -161,6 +161,10 @@ func main() {
 					} else {
 						fmt.Println("done")
 					}
+					// DIMEODS-1262 - ensure file closed if not nil
+					if fReader != nil {
+						fReader.Close()
+					}
 
 				}
 

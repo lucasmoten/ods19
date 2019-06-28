@@ -59,7 +59,10 @@ Refer to the [Environment](static/templates/environment.html) variables page for
 * Server connection settings: OD_SERVER_CA, OD_SERVER_CERT, OD_SERVER_KEY
 * Server Encryption Key: OD_ENCRYPT_MASTERKEY
 
-Refer to the [Software Installation Procedures Guide](https://docs.google.com/document/d/1BV0mv-HePAfOJ0C1SLl1Dr6tKj1TRkgMYSOnSSbQ16s/edit#heading=h.cq93k7j2zwk3) for detailed guidance.
+The following documents offer supplementary support
+* [Software Installation Procedures Guide](static/object-drive-sipg.pdf)
+* [System Administration Guide](static/object-drive-sag.pdf)
+* [Metadata and File System Structure](static/object-drive-internal.pdf)
 
 
 ##  Reference Examples
