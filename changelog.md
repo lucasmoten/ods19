@@ -17,7 +17,7 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Release v1.0.21 (Unreleased) 51
+## Release v1.0.21 (July 18, 2019) 51
 ---------------------
 * CFG: Jenkins and Docker updated to build with 1.12.6b4
 * CFG: New environment variables for response headers `OD_HEADER_BANNER_ENABLED`, `OD_HEADER_BANNER_NAME`, `OD_HEADER_SERVER_ENABLED`, `OD_HEADER_SERVER_NAME`, `OD_HEADER_SESSIONID_ENABLED`, `OD_HEADER_SESSIONID_NAME`
