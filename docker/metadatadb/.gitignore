@@ -3,3 +3,4 @@
 
 # Ignore private keys and certs
 *.pem
+*.crt

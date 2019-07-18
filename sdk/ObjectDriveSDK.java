@@ -22,7 +22,7 @@ import javax.json.*;
   
   
   #!/bin/bash
-  endpoint=https://meme.363-283.io/services/object-drive/0.0
+  endpoint=https://meme.dime.di2e.net/services/object-drive/0.0
   endpoint=https://proxier:8080/services/object-drive/0.0
   classpath=.:javax.json-1.0.4.jar
   javac -classpath $classpath ObjectDriveSDK.java && java -classpath $classpath ObjectDriveSDK \
@@ -44,7 +44,7 @@ public class ObjectDriveSDK {
     public static void main(String[] args) throws Exception {
         //Include initial part of URL, like:
         //
-        //   https://meme.363-283.io/services/object-drive/0.0
+        //   https://meme.dime.di2e.net/services/object-drive/0.0
         //
         String apiEndpoint = args[0];
         

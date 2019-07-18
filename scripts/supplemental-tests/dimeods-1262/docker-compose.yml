@@ -98,6 +98,7 @@ services:
   odrive:
     hostname: odrive
     image: deciphernow/odrive-bc:latest
+    # The following image can be used to attempt to cause failure from file leakage
     #image: docker-dime.di2e.net/dime/object-drive-server:1.0.20b4
     networks:
       - my-network-name
@@ -159,6 +160,7 @@ services:
   odrive2:
     hostname: odrive2
     image: deciphernow/odrive-bc:latest
+    # The following image can be used to attempt to cause failure from file leakage
     #image: docker-dime.di2e.net/dime/object-drive-server:1.0.20b4
     networks:
       - my-network-name

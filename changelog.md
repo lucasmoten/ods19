@@ -17,6 +17,15 @@ FORMAT: 1A
 
 # Group Changelog
 
+## Release v1.0.22 (August 29, 2019) 52
+---------------------
+* DOC: Updating environment references to use meme.dime.di2e.net
+* DOC: API Samples rebuilt
+* ENH: Vendor libraries updated
+* OPS: Jenkins and Docker updated to build with 1.12.9b4
+* OPS: Docker image for odriverpm now built using local glibc rpms
+* OPS: Docker images built in jenkins now trust man-in-the-middle certificates
+
 ## Release v1.0.21 (July 18, 2019) 51
 ---------------------
 * CFG: Jenkins and Docker updated to build with 1.12.6b4

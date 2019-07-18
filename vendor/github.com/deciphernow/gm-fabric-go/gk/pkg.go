@@ -17,10 +17,11 @@ package gk
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net"
 	"os"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/deciphernow/gm-fabric-go/zkutil"
 
@@ -63,6 +64,7 @@ type Address struct {
 // don't export; force the user to use one of the constants
 type status string
 
+// Alive is the initial status all services should announce if they are healthy
 const Alive = status("ALIVE")
 
 // -----------------------------------------------------------------------------
@@ -78,7 +80,10 @@ func GetIP() (string, error) {
 	}
 	myIPs, err := net.LookupIP(hostname)
 	if err != nil {
-		return "", errors.New("could not get a set of IPs for our hostname")
+		myIPs, err = net.LookupIP("localhost")
+		if err != nil {
+			return "", errors.New("could not get a set of IPs for our hostname")
+		}
 	}
 	if len(myIPs) <= 0 {
 		return "", errors.New("could not find IPv4 address")
@@ -91,6 +96,7 @@ func GetIP() (string, error) {
 	return "", errors.New("could not find IPv4 address")
 }
 
+// Registration is the base node announcement data that should be created by all services announcing to zookeeper
 type Registration struct {
 	Path   string
 	Status status
@@ -98,28 +104,61 @@ type Registration struct {
 	Port   int
 }
 
-func (self *Registration) toAnn() AnnounceData {
+// toAnn will create announce data from the registration object
+func (r *Registration) toAnn() AnnounceData {
 	json := AnnounceData{
-		Status: self.Status,
+		Status: r.Status,
 		ServiceEndpoint: Address{
-			Host: self.Host,
-			Port: self.Port,
+			Host: r.Host,
+			Port: r.Port,
 		},
 	}
 	return json
 }
 
-// Register the service announcement with ZooKeeper.
+// Announce Registers the service announcement with ZooKeeper.
 // Should look something like:
 //
 //	cancel := gk.Announce([]string{"localhost:2181"}, &gk.Registration{
-//		Path:   "/cte/service/category/1.0.0",
+//		Path:   "/services/category/1.0.0/http",
 //		Host:   "127.0.0.1",
 //		Port:   8090,
 //		Status: gk.Alive,
 //	})
 //	defer cancel()
+//
+// This function is deprecated, it is kept for compatibility
 func Announce(servers []string, reg *Registration) (cancel func()) {
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger().
+		Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	return AnnounceWithLogger(servers, reg, logger)
+}
+
+// AnnounceWithLogger registers the service announcement with ZooKeeper.
+// Should look something like:
+//
+//	logger := zerolog.New(os.Stderr).With().Timestamp().Logger().
+//		Output(zerolog.ConsoleWriter{Out: os.Stderr})
+//
+// serviceLogger := logger.With().Str("service", "<service-name>").Logger()
+//
+//	cancel := gk.AnnounceWithLogger(
+// 		[]string{"localhost:2181"},
+//		&gk.Registration{
+//			Path:   "/cte/service/category/1.0.0",
+//			Host:   "127.0.0.1",
+//			Port:   8090,
+//			Status: gk.Alive,
+//		},
+//		serviceLogger.
+// )
+//	defer cancel()
+func AnnounceWithLogger(
+	servers []string,
+	reg *Registration,
+	logger zerolog.Logger,
+) (cancel func()) {
 	done := make(chan struct{})
 	cancel = func() {
 		close(done)
@@ -130,7 +169,7 @@ func Announce(servers []string, reg *Registration) (cancel func()) {
 
 	go func() {
 		// Announce until cancelled.
-		for doAnn(done, annBytes, servers, reg) {
+		for doAnn(done, annBytes, servers, reg, logger) {
 			select {
 			case <-done:
 				return
@@ -143,10 +182,25 @@ func Announce(servers []string, reg *Registration) (cancel func()) {
 	return cancel
 }
 
-func doAnn(done chan struct{}, annBytes []byte, servers []string, reg *Registration) bool {
-	conn, evCh, err := zk.Connect(servers, 2*time.Second)
+type zkZeroLogger struct {
+	logger zerolog.Logger
+}
+
+func (zl zkZeroLogger) Printf(format string, a ...interface{}) {
+	zl.logger.Debug().Msgf(format, a...)
+}
+
+func doAnn(
+	done chan struct{},
+	annBytes []byte,
+	servers []string,
+	reg *Registration,
+	logger zerolog.Logger,
+) bool {
+	zl := zkZeroLogger{logger: logger}
+	conn, evCh, err := zk.Connect(servers, 2*time.Second, zk.WithLogger(zl))
 	if err != nil {
-		log.Println("Zookeeper connection failed:", err)
+		logger.Error().AnErr("zk.Connect", err).Msg("")
 		// Time to reconnect.
 		return true
 	}
@@ -161,7 +215,7 @@ create:
 		// Mark that we successfully created the node.
 		expired = false
 	} else {
-		log.Println("Gatekeeper announcement failed:", err)
+		logger.Error().AnErr("zkutil.CreateRecursive", err).Msg("")
 	}
 
 	// Wait until we're cancelled or the connection fails.
@@ -177,13 +231,13 @@ create:
 			// On the other hand, if the session expires, we need to recreate the
 			// node.
 			if ev.Err != nil {
-				log.Println("Gatekeeper announcement failed:", err)
+				logger.Error().AnErr("Gatekeeper announcement", err).Msg("")
 				return true
 			} else if ev.State == zk.StateExpired {
-				log.Println("Gatekeeper announcement expired")
+				logger.Info().Msg("Gatekeeper announcement expired")
 				expired = true
 			} else if expired && ev.State == zk.StateHasSession {
-				log.Println("Re-announcing service")
+				logger.Info().Msg("Re-announcing service")
 				goto create
 			}
 		}

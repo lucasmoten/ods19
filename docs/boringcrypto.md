@@ -32,7 +32,7 @@ Module Validation Program](https://csrc.nist.gov/Projects/cryptographic-module-v
 * [JIRA Issue for Object Drive and Boring Crypto](https://jira.di2e.net/browse/DIMEODS-1144)
 * [Go+BoringCrypto](https://go.googlesource.com/go/+/refs/heads/dev.boringcrypto.go1.12/misc/boring/)
 
-Releases of Object Drive starting with 1.0.18 are built using a version of Go that includes the BoringCrypto module to satisfy FIPS 140-2.  This is signified in the same way that the Go does with a suffix of `b` followed by release number (e.g. b4 represented as 1.0.18b4).
+Releases of Object Drive starting with 1.0.18 are built using a version of Go that includes the BoringCrypto module to satisfy FIPS 140-2.  This is signified in the same way that the Go does with a suffix of `b` followed by release number (e.g. b4 represented as 1.0.22b4).
 
 
 ## Using Go+BoringCrypto
@@ -41,7 +41,7 @@ Go+BoringCrypto modifies the crypto package of Go programming language to check 
 
 The latest versions of Go+BoringCrypto are acquired from the S3 go-boringcrypto bucket whose contents can be listed at https://go-boringcrypto.storage.googleapis.com/
 
-As of this writing, the current version of Go+BoringCrypto used by the project is go1.12.6b4
+As of this writing, the current version of Go+BoringCrypto used by the project is go1.12.9b4
 
 Building projects with Go+BoringCrypto is performed the same way as that when using Go Native.
 

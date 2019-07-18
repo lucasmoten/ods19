@@ -5,9 +5,10 @@ odriverpmbuilt=`docker images | grep odriverpm-bc -c`
 
 if [ "${odriverpmbuilt}" == "1" ]
 then
-  echo docker image already built
+  echo "docker image deciphernow/odriverpm-bc already built"
 else
-  docker build -t deciphernow/odriverpm-bc:latest scripts
+  echo "docker image deciphernow/odriverpm-bc needs to be built"
+  ./scripts/makeimage
 fi
 
 ARG_VERSION=${1}

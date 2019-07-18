@@ -58,6 +58,13 @@ to any RPM package produced.  The only place where version needs to be assigned
 separately from this is within the docker-compose configuration files where an
 ODRIVE_VERSION environment variable should be set for the proxier.
 
+## Dependencies
+
+Third party libraries are pulled into the vendor library using govendor.
+To update:
+    govendor update +v
+    govendor fetch +o
+
 ## Style Guide
 
 Functions should take as few parameters as possible. If many parameters are 

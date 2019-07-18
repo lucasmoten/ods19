@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -817,6 +818,7 @@ func stallForAvailability() int {
 }
 
 func TestMain(m *testing.M) {
+	flag.Parse()
 	stallForAvailability()
 	os.Exit(m.Run())
 }

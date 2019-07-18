@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	metrics "github.com/rcrowley/go-metrics"
@@ -28,6 +30,8 @@ func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.
 	fmt.Fprint(w, "{\n")
 
 	// Our statistics to report
+	t := time.Now().UTC()
+	fmt.Fprintf(w, "\t\"statsReportedDate\": \"%s\",\n", t.Format(time.RFC3339Nano))
 	hostname, _ := os.Hostname()
 	fmt.Fprintf(w, "\t\"nodeId\": \"%s\",\n", config.NodeID)
 	fmt.Fprintf(w, "\t\"hostname\": \"%s\",\n", hostname)
@@ -38,11 +42,6 @@ func (h AppServer) getStats(ctx context.Context, w http.ResponseWriter, r *http.
 	fmt.Fprintf(w, "\t\"typesLruCacheCount\": %d,\n", h.TypeLruCache.ItemCount())
 	renderErrorCounters(w)
 	renderMetricsForTrackedFunctions(w)
-
-	// Functions above have trailing commas and have been written out
-	// This last stat ensures the JSON is well formatted
-	t := time.Now().UTC()
-	fmt.Fprintf(w, "\t\"statsReportedDate\": \"%s\"\n", t.Format(time.RFC3339Nano))
 
 	// Close
 	fmt.Fprint(w, "}\n")
@@ -78,11 +77,12 @@ func renderErrorCounters(w http.ResponseWriter) {
 		}
 	}
 	mutex.Unlock()
-
-	fmt.Fprintf(w, "\t\"requestsTracked/queryCount\": %d,\n", totalQueries)
-	fmt.Fprintf(w, "\t\"requestsTracked/errorCount\": %d,\n", totalErrors)
-	fmt.Fprintf(w, "\t\"requestsTracked/userErrorCount\": %d,\n", userErrors)
-	fmt.Fprintf(w, "\t\"requestsTracked/serverErrorCount\": %d,\n", serverErrors)
+	fmt.Fprintf(w, "\t\"trackedRequests\": {\n")
+	fmt.Fprintf(w, "\t\t\"queryCount\": %d,\n", totalQueries)
+	fmt.Fprintf(w, "\t\t\"errorCount\": %d,\n", totalErrors)
+	fmt.Fprintf(w, "\t\t\"userErrorCount\": %d,\n", userErrors)
+	fmt.Fprintf(w, "\t\t\"serverErrorCount\": %d\n", serverErrors)
+	fmt.Fprintf(w, "\t},\n")
 }
 
 func renderMetricsForTrackedFunctions(w http.ResponseWriter) {
@@ -98,29 +98,45 @@ func renderMetricsForTrackedFunctions(w http.ResponseWriter) {
 	// Log go-metrics
 	scale := time.Millisecond
 	du := float64(scale)
-	for _, k := range metrickeys {
+	fmt.Fprintf(w, "\t\"%s\": {\n", "trackedFunctions")
+	kl := len(metrickeys)
+	for ki, k := range metrickeys {
 		name := k
+		normalizedName := sanitizeMyName(name)
 		i := metrics.DefaultRegistry.Get(k)
 		metric, ok := i.(metrics.Timer)
 		if ok {
 			t := metric.Snapshot()
 			if t.Count() > 0 {
+				fmt.Fprintf(w, "\t\t\"%s\": {\n", normalizedName)
+				fmt.Fprintf(w, "\t\t\t\"givenname\": \"%s\",\n", name)
 				ps := t.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
-				fmt.Fprintf(w, "\t\"%s/count\": %9d,\n", name, t.Count())
-				fmt.Fprintf(w, "\t\"%s/latency_ms.min\": %12.2f,\n", name, float64(t.Min())/du)
-				fmt.Fprintf(w, "\t\"%s/latency_ms.max\": %12.2f,\n", name, float64(t.Max())/du)
-				fmt.Fprintf(w, "\t\"%s/latency_ms.mean\": %12.2f,\n", name, float64(t.Mean())/du)
-				fmt.Fprintf(w, "\t\"%s/latency_ms.stddev\": %12.2f,\n", name, t.StdDev()/du)
-				fmt.Fprintf(w, "\t\"%s/latency_ms.p50\": %12.2f,\n", name, ps[0]/du)
-				fmt.Fprintf(w, "\t\"%s/latency_ms.p75\": %12.2f,\n", name, ps[1]/du)
-				fmt.Fprintf(w, "\t\"%s/latency_ms.p95\": %12.2f,\n", name, ps[2]/du)
-				fmt.Fprintf(w, "\t\"%s/latency_ms.p99\": %12.2f,\n", name, ps[3]/du)
-				fmt.Fprintf(w, "\t\"%s/latency_ms.p999\": %12.2f,\n", name, ps[4]/du)
-				fmt.Fprintf(w, "\t\"%s/1_min_rate\": %12.2f,\n", name, t.Rate1())
-				fmt.Fprintf(w, "\t\"%s/5_min_rate\": %12.2f,\n", name, t.Rate5())
-				fmt.Fprintf(w, "\t\"%s/15_min_rate\": %12.2f,\n", name, t.Rate15())
-				fmt.Fprintf(w, "\t\"%s/mean_rate\": %12.2f,\n", name, t.RateMean())
+				fmt.Fprintf(w, "\t\t\t\"count\": %9d,\n", t.Count())
+				fmt.Fprintf(w, "\t\t\t\"latency_ms.min\": %12.2f,\n", float64(t.Min())/du)
+				fmt.Fprintf(w, "\t\t\t\"latency_ms.max\": %12.2f,\n", float64(t.Max())/du)
+				fmt.Fprintf(w, "\t\t\t\"latency_ms.mean\": %12.2f,\n", float64(t.Mean())/du)
+				fmt.Fprintf(w, "\t\t\t\"latency_ms.stddev\": %12.2f,\n", t.StdDev()/du)
+				fmt.Fprintf(w, "\t\t\t\"latency_ms.p50\": %12.2f,\n", ps[0]/du)
+				fmt.Fprintf(w, "\t\t\t\"latency_ms.p75\": %12.2f,\n", ps[1]/du)
+				fmt.Fprintf(w, "\t\t\t\"latency_ms.p95\": %12.2f,\n", ps[2]/du)
+				fmt.Fprintf(w, "\t\t\t\"latency_ms.p99\": %12.2f,\n", ps[3]/du)
+				fmt.Fprintf(w, "\t\t\t\"latency_ms.p999\": %12.2f,\n", ps[4]/du)
+				fmt.Fprintf(w, "\t\t\t\"1_min_rate\": %12.2f,\n", t.Rate1())
+				fmt.Fprintf(w, "\t\t\t\"5_min_rate\": %12.2f,\n", t.Rate5())
+				fmt.Fprintf(w, "\t\t\t\"15_min_rate\": %12.2f,\n", t.Rate15())
+				fmt.Fprintf(w, "\t\t\t\"mean_rate\": %12.2f\n", t.RateMean())
+				if ki < kl-1 {
+					fmt.Fprintf(w, "\t\t},\n")
+				} else {
+					fmt.Fprintf(w, "\t\t}\n")
+				}
 			}
 		}
 	}
+	fmt.Fprintf(w, "\t}\n")
+}
+
+func sanitizeMyName(inVal string) string {
+	reg, _ := regexp.Compile("[^A-Za-z0-9]+")
+	return strings.ToLower(reg.ReplaceAllString(inVal, "_"))
 }

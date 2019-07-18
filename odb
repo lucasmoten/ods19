@@ -55,53 +55,12 @@ def odrivebc_build(tag="latest"):
 
 
 def metadatadb_build(tag="latest"):
-    """ Build the database docker image 
-    
-    This provides the data store for odrive in the docker-compose cluster
+    """ Build the database docker image for metadata storage
     """
-    
-    #object_drive_server = PROJECT_ROOT
-    defaultcerts = os.path.join(PROJECT_ROOT, 'defaultcerts')
-    odrive_database = os.path.join(PROJECT_ROOT, 'cmd', 'odrive-database')
-    metadatadb_dir = os.path.join(PROJECT_ROOT, 'docker', 'metadatadb')
-    dockerfile = os.path.join(metadatadb_dir, "Dockerfile")
+    docker_dir = os.path.join(PROJECT_ROOT, 'docker', 'metadatadb')
+    os.chdir(docker_dir)
+    subprocess.check_call(['./makeimage'])
 
-    # CROSS COMPILATION WOO HOO!
-    os.chdir(odrive_database)
-    os.putenv('GOOS', 'linux')
-    os.putenv('GOARCH', 'amd64')
-    if os.getenv('CGO_ENABLED') == None:
-        os.putenv('CGO_ENABLED', '0')
-    try:
-        subprocess.check_call(["go-bindata", "schema", "migrations", "../../defaultcerts/client-mysql/id", "../../defaultcerts/client-mysql/trust"]) 
-        subprocess.check_call(["go", "build"]) 
-    except Exception as e:
-        print(e)
-        raise
-
-    binary = os.path.join(odrive_database, "odrive-database")
-    os.chdir(metadatadb_dir)
-    shutil.copyfile(binary, "./odrive-database")
-
-    # ca.pem
-    ca_pem = os.path.join(defaultcerts, 'client-mysql', 'trust', 'ca.pem')
-    shutil.copyfile(ca_pem, './ca.pem')
-    # client-cert.pem
-    client_cert_pem = os.path.join(defaultcerts, 'client-mysql', 'id', 'client-cert.pem')
-    shutil.copyfile(client_cert_pem, './client-cert.pem')
-    # client-key.pem
-    client_key_pem = os.path.join(defaultcerts, 'client-mysql', 'id', 'client-key.pem')
-    shutil.copyfile(client_key_pem, './client-key.pem')
-    # server-cert.pem
-    server_cert_pem = os.path.join(defaultcerts, 'metadatadb', 'id', 'server-cert.pem')
-    shutil.copyfile(server_cert_pem, './server-cert.pem')
-    # server-key.pem
-    server_key_pem = os.path.join(defaultcerts, 'metadatadb', 'id', 'server-key.pem')
-    shutil.copyfile(server_key_pem, './server-key.pem')
-
-    # invoke docker build, and always try to clean up directory
-    run_dockerfile(dockerfile, "deciphernow/metadatadb", tag)
-    os.remove("odrive-database")
 
 def packaging_build(tag="latest"):
     """ Build the packager docker image
@@ -389,7 +348,7 @@ class Builder(object):
                 self.logger.error("Error from git clone: {0}".format(e))
                 sys.exit(1)
 
-        # Run `go get` to fetch Go depedencies and `go-bindata` to package static assets into Go source code
+        # Run `go get` to fetch Go dependencies and `go-bindata` to package static assets into Go source code
         try:
             database_directory = os.path.join(repository_directory, "cmd", "odrive-database")
             os.chdir(database_directory)

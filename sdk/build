@@ -1,6 +1,6 @@
 #!/bin/bash
 
-endpoint=https://meme.363-283.io/services/object-drive/0.0
+endpoint=https://meme.dime.di2e.net/services/object-drive/0.0
 endpoint=https://proxier:8080/services/object-drive/0.0
 classpath=.:javax.json-1.0.4.jar
 

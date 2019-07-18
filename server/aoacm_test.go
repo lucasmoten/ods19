@@ -23,7 +23,7 @@ func TestAOACMPerformance(t *testing.T) {
 
 	testTime := time.Now().UTC()
 	// The following are merely for convenience to target this manual test against a different server
-	//basehost = "https://meme.363-283.io"
+	//basehost = "https://meme.dime.di2e.net"
 	var uris []string
 	uris = append(uris, "/objects")
 	uris = append(uris, "/shares")

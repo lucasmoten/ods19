@@ -46,6 +46,7 @@ type CloudWatchGeneralStats struct {
 	MemPct          *float64
 	Load            *float64
 	IntervalMillis  *int64
+	IntervalFirst   *int64
 	IntervalLast    *int64
 	IntervalNext    *int64
 	SysMem          *float64
@@ -61,41 +62,52 @@ func CloudWatchDump(w io.Writer) {
 	cwAccumulatorMutex.Unlock()
 	//We do NOT want to do periodic logging of successful CloudWatch sends, or it will fill the logs with noise and make them large when nothing interesting is happening.
 	//So, let us look at such stats here.
+	fmt.Fprintf(w, "\t\"statssnapshot\": {\n")
+	hasCPU := renderedStats.CPUUtilization != nil
+	hasLoad := renderedStats.Load != nil
+	hasMemKB := renderedStats.MemKB != nil
+	hasSysMem := renderedStats.SysMem != nil
+	hasFD := renderedStats.FileDescriptors != nil
+	hasGoR := renderedStats.GoRoutines != nil
 	if renderedStats.IntervalMillis != nil {
-		fmt.Fprintf(w, "\t\"statssnapshot/interval_in_seconds\": %f,\n", float64(float64(*renderedStats.IntervalMillis)/float64(1000)))
+		fmt.Fprintf(w, "\t\t\"interval_in_seconds\": %f,\n", float64(float64(*renderedStats.IntervalMillis)/float64(1000)))
+		timeFirstMSDuration := util.NowMS() - *renderedStats.IntervalFirst
+		fmt.Fprintf(w, "\t\t\"interval_first\": \"%s\",\n", time.Now().Add(time.Duration(-1*timeFirstMSDuration)*time.Millisecond).UTC().Format(time.RFC3339Nano))
 		timeLastMSDuration := util.NowMS() - *renderedStats.IntervalLast
-		fmt.Fprintf(w, "\t\"statssnapshot/interval_last\": \"%s\",\n", time.Now().Add(time.Duration(-1*timeLastMSDuration)*time.Millisecond).UTC().Format(time.RFC3339Nano))
+		fmt.Fprintf(w, "\t\t\"interval_last\": \"%s\",\n", time.Now().Add(time.Duration(-1*timeLastMSDuration)*time.Millisecond).UTC().Format(time.RFC3339Nano))
 		timeNextMSDuration := *renderedStats.IntervalNext - util.NowMS()
-		fmt.Fprintf(w, "\t\"statssnapshot/interval_next\": \"%s\",\n", time.Now().Add(time.Duration(timeNextMSDuration)*time.Millisecond).UTC().Format(time.RFC3339Nano))
+		fmt.Fprintf(w, "\t\t\"interval_next\": \"%s\"%s\n", time.Now().Add(time.Duration(timeNextMSDuration)*time.Millisecond).UTC().Format(time.RFC3339Nano), iif(hasCPU || hasLoad || hasMemKB || hasSysMem || hasFD || hasGoR, ",", ""))
 	}
-	if renderedStats.CPUUtilization != nil {
-		if !math.IsNaN(*renderedStats.CPUUtilization) {
-			fmt.Fprintf(w, "\t\"statssnapshot/container/cpu_utilization_pct\": %f,\n", *renderedStats.CPUUtilization)
+	if hasCPU || hasLoad {
+		fmt.Fprintf(w, "\t\t\"container\": {\n")
+		if hasCPU {
+			if !math.IsNaN(*renderedStats.CPUUtilization) {
+				fmt.Fprintf(w, "\t\t\t\"cpu_utilization_pct\": %f%s\n", *renderedStats.CPUUtilization, iif(hasLoad, ",", ""))
+			}
 		}
+		if hasLoad {
+			fmt.Fprintf(w, "\t\t\t\"cpu_5min_loadavg\": %f,\n", *renderedStats.Load)
+			fmt.Fprintf(w, "\t\t\t\"cpu_count\": %d\n", runtime.NumCPU())
+		}
+		fmt.Fprintf(w, "\t\t}%s", iif(hasMemKB || hasSysMem || hasFD || hasGoR, ",", ""))
 	}
-	if renderedStats.Load != nil {
-		fmt.Fprintf(w, "\t\"statssnapshot/container/cpu_5min_loadavg\": %f,\n", *renderedStats.Load)
-		fmt.Fprintf(w, "\t\"statssnapshot/container/cpu_count\": %d,\n", runtime.NumCPU())
+	if hasMemKB || hasSysMem || hasFD || hasGoR {
+		fmt.Fprintf(w, "\t\t\"process\": {\n")
+		if renderedStats.MemKB != nil {
+			fmt.Fprintf(w, "\t\t\t\"mem_heap_used_kb\": %9.f%s\n", *renderedStats.MemKB, iif(hasSysMem || hasFD || hasGoR, ",", ""))
+		}
+		if renderedStats.SysMem != nil {
+			fmt.Fprintf(w, "\t\t\t\"mem_from_os_kb\": %9.f%s\n", *renderedStats.SysMem, iif(hasFD || hasGoR, ",", ""))
+		}
+		if renderedStats.FileDescriptors != nil {
+			fmt.Fprintf(w, "\t\t\t\"file_descriptors_count\": %d%s\n", *renderedStats.FileDescriptors, iif(hasGoR, ",", ""))
+		}
+		if renderedStats.GoRoutines != nil {
+			fmt.Fprintf(w, "\t\t\t\"go_routines_count\": %d\n", *renderedStats.GoRoutines)
+		}
+		fmt.Fprintf(w, "\t\t}\n")
 	}
-	if renderedStats.MemKB != nil {
-		fmt.Fprintf(w, "\t\"statssnapshot/process/mem_heap_used_kb\": %9.f,\n", *renderedStats.MemKB)
-	}
-	if renderedStats.SysMem != nil {
-		fmt.Fprintf(w, "\t\"statssnapshot/process/mem_from_os_kb\": %9.f,\n", *renderedStats.SysMem)
-	}
-	if renderedStats.FileDescriptors != nil {
-		fmt.Fprintf(w, "\t\"statssnapshot/process/file_descriptors_count\": %d,\n", *renderedStats.FileDescriptors)
-	}
-	if renderedStats.GoRoutines != nil {
-		fmt.Fprintf(w, "\t\"statssnapshot/process/go_routines_count\": %d,\n", *renderedStats.GoRoutines)
-	}
-	// 20190402 - Commenting these out because its way wrong in implementation, assuming success and instant transfers
-	// if renderedStats.Throughput != nil {
-	// 	fmt.Fprintf(w, "\t\"statssnapshot/process/throughput_kb\": %f,\n", *renderedStats.Throughput)
-	// }
-	// if renderedStats.Latency != nil {
-	// 	fmt.Fprintf(w, "\t\"statssnapshot/process/latency_ms\": %f,\n", *renderedStats.Latency)
-	// }
+	fmt.Fprintf(w, "\t},\n")
 }
 
 // CloudWatchTransaction wraps CloudWatchTransactionRaw with start/stop and bytes
@@ -259,6 +271,9 @@ func ComputeOverallPerformance(
 		cwStats.IntervalLast = aws.Int64(util.NowMS())
 		cwStats.IntervalNext = aws.Int64(*cwStats.IntervalLast + millis)
 		cwStats.Throughput = aws.Float64(float64(bytes) / float64(millis))
+	}
+	if cwStats.IntervalFirst == nil {
+		cwStats.IntervalFirst = cwStats.IntervalLast
 	}
 
 	//There needs to be at least one request to have a latency value to report.
@@ -472,4 +487,11 @@ func CloudWatchReportingStart(tracker *performance.JobReporters) {
 			}
 		}
 	}()
+}
+
+func iif(b bool, t string, f string) string {
+	if b {
+		return t
+	}
+	return f
 }

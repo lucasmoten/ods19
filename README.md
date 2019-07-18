@@ -5,14 +5,22 @@ Object Drive provides for secure storage and high performance retrieval of hiera
 # API Documentation
 
 API documentation for the Object Drive service may be reviewed at the root of an instantiated object-drive server,
-previewed [here](./docs/home.md), or accessed from this [live instance on MEME](https://meme.363-283.io/services/object-drive/1.0/)
+previewed [here](./docs/home.md), or accessed from this [live instance on MEME](https://meme.dime.di2e.net/services/object-drive/1.0/)
 
 # Developers Using Object Drive
 
-To integrate another service or application with Object Drive, we recommend using Docker. Images for the 50th release of the service and database are available here:
+To integrate another service or application with Object Drive, we recommend using Docker. Images for the 51th release of the service and database are available here:
 
-* docker-dime.di2e.net/dime/object-drive-server:1.0.20b4
-* docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.20b4
+* docker-dime.di2e.net/dime/object-drive-server:1.0.21b4
+* docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.21b4
+
+Those wanting to experiment with the most recent changes can use these images
+
+* docker-dime.di2e.net/dime/object-drive-server:1.0.22b4-release-candidate
+* docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.22b4-release-candidate
+
+There is no 'latest' tagged images unless you build them from the source herein. Any such tags are wholely unsupported and any requests for such will be redirected to the above image tags
+
 
 The [docker folder](./docker/README.md) of this project has a series of compose files for different testing use cases.  The [minimal-docker-compose.yml](./docker/minimal-docker-compose.yml) is a good starting point.
 

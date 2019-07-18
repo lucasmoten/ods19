@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # This script has been updated to work with python 2.7 and python 3.6
 
+import glob
 import os
 import sys
 import shutil
 import subprocess
 import imp
+
+from glob import glob
 
 this_script = os.path.abspath(os.path.split(__file__)[1])
 # Split absolute path; address `object-drive` w/ negative index.
@@ -44,9 +47,12 @@ if __name__ == '__main__':
     defaultcerts = os.path.join(object_drive_server, 'defaultcerts')
     odrive_database = os.path.join(object_drive_server, 'cmd', 'odrive-database')
     metadatadb_dir = os.path.join(PROJECT_ROOT, 'docker', 'metadatadb')
-
+    build_dir = os.path.join(metadatadb_dir, 'build')
     dockerfile = os.path.abspath("./Dockerfile")
 
+    if os.path.exists(build_dir):
+        shutil.rmtree(build_dir)
+    os.mkdir(build_dir)
 
     # CROSS COMPILATION WOO HOO!
     os.chdir(odrive_database)
@@ -61,31 +67,39 @@ if __name__ == '__main__':
         print(e)
         raise
 
+    # Copy the binary
     binary = os.path.join(odrive_database, 'odrive-database')
     os.chdir(metadatadb_dir)
-    shutil.copyfile(binary, './odrive-database')
+    shutil.copy(binary, build_dir)
 
-
+    # Copy in certificates
     # ca.pem
     ca_pem = os.path.join(defaultcerts, 'client-mysql', 'trust', 'ca.pem')
-    shutil.copyfile(ca_pem, './ca.pem')
+    shutil.copy(ca_pem, build_dir)
     # client-cert.pem
     client_cert_pem = os.path.join(defaultcerts, 'client-mysql', 'id', 'client-cert.pem')
-    shutil.copyfile(client_cert_pem, './client-cert.pem')
+    shutil.copy(client_cert_pem, build_dir)
     # client-key.pem
     client_key_pem = os.path.join(defaultcerts, 'client-mysql', 'id', 'client-key.pem')
-    shutil.copyfile(client_key_pem, './client-key.pem')
+    shutil.copy(client_key_pem, build_dir)
     # server-cert.pem
     server_cert_pem = os.path.join(defaultcerts, 'metadatadb', 'id', 'server-cert.pem')
-    shutil.copyfile(server_cert_pem, './server-cert.pem')
+    shutil.copy(server_cert_pem, build_dir)
     # server-key.pem
     server_key_pem = os.path.join(defaultcerts, 'metadatadb', 'id', 'server-key.pem')
-    shutil.copyfile(server_key_pem, './server-key.pem')
+    shutil.copy(server_key_pem, build_dir)
+
+    # copy DI2E MITM Proxy certificates if running as jenkins
+    # https://confluence.di2e.net/display/DI2E/DI2E+Proxy+Server+Certificates
+    if os.environ['USER'] == 'jenkins':
+        proxycert_dir = os.path.join(PROJECT_ROOT, 'defaultcerts', 'di2e-mitm-proxy', '*.crt')
+        for file in glob(proxycert_dir):
+            shutil.copy(file, build_dir)
 
     # invoke docker build, and always try to clean up directory
     try:
         run_dockerfile(dockerfile, "deciphernow/metadatadb")
     except:
         raise
-    os.remove("odrive-database")
+    shutil.rmtree(build_dir)
  

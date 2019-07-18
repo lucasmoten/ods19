@@ -77,7 +77,7 @@ Create a new object in Object Drive.
 The returned json is the metadata that can be used for further operations on the data, such as update,
 delete, etc.  The json representing an object is uniform so that it is a similar representation when
 it comes back from creation, or from getting an object listing, or from an update.
-An ACM follows guidance given here: https://confluence.363-283.io/pages/viewpage.action?ageId=557850
+An ACM follows guidance given here: https://confluence.di2e.net/display/DIME/08+-+Data+Structure%3A+ACM
 
 + Request With Content Stream (multipart/form-data; boundary=7518615725)
     When creating a new object with a content stream, such as a file, this must be presented in multipart/form-data format, with the metadata about the object provided in a field named 'ObjectMetadata' containing a JSON structure of the following fields.  The content stream for the object should be the second part, as the native bytes without use of encoding or character sets.
@@ -435,7 +435,7 @@ This creates a new revision of the object.
     + typeName: `Folder` (string, maxlength=255, optional) -  The type to be assigned to this object.  During update if no typeName is given, then the existing type will be retained
     + name (string, maxlength=255, optional) - The name given this object. It need not be unique as it is not used as the identifier of the object internally.
     + description (string, maxlength=10240, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is omitted, then the description will not be changed.
-    + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is omitted, then the acm will not be changed. This value may be provided in either serialized string format, or nested object format.
+    + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.di2e.net/display/DIME/08+-+Data+Structure%3A+ACM. If no value is provided, or this field is omitted, then the acm will not be changed. This value may be provided in either serialized string format, or nested object format.
     + permission (PermissionRequest, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
        * Examples for Users
@@ -613,7 +613,7 @@ This creates a new revision of the object.
     + typeName (string, maxlength=255, optional) -  The new type to be assigned to this object. Common types include 'File', 'Folder'. If no value is provided or this field is omitted, then the type will not be changed.
     + name (string, maxlength=255, optional) - The new name to be given this object. It does not have to be unique. It may refer to a conventional filename and extension. If no value is provided, or this field is omitted, then the name will not be changed.
     + description (string, maxlength=10240, optional) - The new description to be given as an abstract of the objects content stream. If no value is provided, or this field is omitted, then the description will not be changed.
-    + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.363-283.io/pages/viewpage.action?pageId=557850. If no value is provided, or this field is omitted, then the acm will not be changed.  This value may be provided in either serialized string format, or nested object format.
+    + acm (object, optional) -  Access Control Model (ACM) is the security model leveraged by the system when enforcing access control. It is based on the ISM, NTK, ACCM and Share standards, requirements and policies. https://confluence.di2e.net/display/DIME/08+-+Data+Structure%3A+ACM. If no value is provided, or this field is omitted, then the acm will not be changed.  This value may be provided in either serialized string format, or nested object format.
     + permission (PermissionRequest, optional) - [1.0.1.16+] The permissions associated with this object by capability and resource allowed.  Resources take the following form:
        * {resourceType}/{serialized-representation}/{optional-display-name}
        * Examples for Users

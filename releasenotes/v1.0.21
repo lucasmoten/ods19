@@ -1,0 +1,29 @@
+Name:   ODrive 1.0.21 CI Build 3012
+Tag:    v1.0.21
+Commit: 832e6128635268bff5bf0f6b503d090cc3f8806b
+Date:   July 18, 2019
+
+CFG: Jenkins and Docker updated to build with 1.12.6b4
+CFG: New environment variables for response headers `OD_HEADER_BANNER_ENABLED`, `OD_HEADER_BANNER_NAME`, `OD_HEADER_SERVER_ENABLED`, `OD_HEADER_SERVER_NAME`, `OD_HEADER_SESSIONID_ENABLED`, `OD_HEADER_SESSIONID_NAME`
+DOC: API Documentation now includes guidance for status code 409
+FIX: File handle leak in ciphertext cache calls to peers
+FIX: Ciphertext uri matcher for peer requests
+FIX: Default path to token.jar set back to 1.0
+ENH: Additional logging in file handling, API operations for session correlation
+ENH: Expose number of file descriptors and go routines in /stats
+ENH: Support for OID roots when retrieving files or directory listings by path
+TST: Tested with > 15M file retrievals spread across multiple instances with and without peering
+
+For Upgrading
+DB: No database update is required if upgrading from v1.0.6 or newer. The current expected schema version is 20170726 or 20190225.
+Server: If you are upgrading from v1.0.10 or newer, then perform a standard upgrade as follows
+  yum upgrade object-drive-1.0-1.0.21b4-3012.20190718.x86_64.rpm
+If you are upgrading from a version prior to v1.0.10, then changes to the versioning scheme in the package metadata will cause the above upgrade to fail for does not update installed package. You can force an update by using the rpm command as follows
+  rpm --force --upgrade object-drive-1.0-1.0.21b4-3012.20190718.x86_64.rpm
+
+Prebuilt RPM
+https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-1.0.21b4-3012.20190718.x86_64.rpm
+
+Containers
+Server:       docker-dime.di2e.net/dime/object-drive-server:1.0.21b4
+Database: docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.21b4

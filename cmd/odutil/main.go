@@ -25,8 +25,6 @@ const (
 )
 
 func main() {
-	//s3gof3r.SetLogger(os.Stdout, "ODUTIL ", 0, true)
-
 	flag.Parse()
 
 	if len(*accessKeyID) > 0 {
