@@ -17,7 +17,12 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Release v1.0.22 (August 29, 2019) 52
+## Release v1.0.23 (Unreleased) 53
+---------------------
+* TST: Adding TestListObjectsOfFolder1000
+
+
+## Release v1.0.22 (August 30, 2019) 52
 ---------------------
 * DOC: Updating environment references to use meme.dime.di2e.net
 * DOC: API Samples rebuilt

@@ -43,7 +43,7 @@ services:
       - dias
 
   metadatadb:
-    image: docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.21b4
+    image: docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.22b4
     mem_limit: 1024m
     cpuset: "0"
     environment:
@@ -59,7 +59,7 @@ services:
     command: "./docker-entrypoint.sh mysqld_safe"
 
   odrive:
-    image: docker-dime.di2e.net/dime/object-drive-server:1.0.21b4
+    image: docker-dime.di2e.net/dime/object-drive-server:1.0.22b4
     environment:
         - OD_AAC_CA=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/trust/client.trust.pem
         - OD_AAC_CERT=/go/src/bitbucket.di2e.net/dime/object-drive-server/defaultcerts/client-aac/id/client.cert.pem

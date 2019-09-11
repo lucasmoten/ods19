@@ -1,0 +1,25 @@
+Name:   ODrive 1.0.22 CI Build 3046
+Tag:    v1.0.22
+Commit: cc71eceb5b4d21fa512c5d353f04147db4b2f227
+Date:   August 30, 2019
+
+DOC: Updating environment references to use meme.dime.di2e.net
+DOC: API Samples rebuilt
+ENH: Vendor libraries updated
+OPS: Jenkins and Docker updated to build with 1.12.9b4
+OPS: Docker image for odriverpm now built using local glibc rpms
+OPS: Docker images built in jenkins now trust man-in-the-middle certificates
+
+For Upgrading
+DB: No database update is required if upgrading from v1.0.6 or newer. The current expected schema version is 20170726 or 20190225.
+Server: If you are upgrading from v1.0.10 or newer, then perform a standard upgrade as follows
+  yum upgrade object-drive-1.0-1.0.22b4-3046.20190830.x86_64.rpm
+If you are upgrading from a version prior to v1.0.10, then changes to the versioning scheme in the package metadata will cause the above upgrade to fail for does not update installed package. You can force an update by using the rpm command as follows
+  rpm --force --upgrade object-drive-1.0-1.0.22b4-3046.20190830.x86_64.rpm
+
+Prebuilt RPM
+https://nexus.di2e.net/nexus3/repository/Private_DIME_YUM/object-drive-server/object-drive-1.0-1.0.22b4-3046.20190830.x86_64.rpm
+
+Containers
+Server:       docker-dime.di2e.net/dime/object-drive-server:1.0.22b4
+Database: docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.22b4
