@@ -19,6 +19,7 @@ FORMAT: 1A
 
 ## Release v1.0.23 (Unreleased) 53
 ---------------------
+* OPS: Jenkins and Docker updated to build with 1.13b4
 * TST: Adding TestListObjectsOfFolder1000
 
 

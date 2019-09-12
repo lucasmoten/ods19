@@ -4,15 +4,15 @@
 
 Make sure `go` is installed
 
-At the time of writing, the latest available version was 1.12.9
+At the time of writing, the latest available version was 1.13
 
 Go may be downloaded from https://golang.org/dl/
 
 Go with Boring-Crypto https://go-boringcrypto.storage.googleapis.com/
 
 ```bash
-wget https://go-boringcrypto.storage.googleapis.com/go1.12.9b4.linux-amd64.tar.gz
-tar -C /usr/local -xzf go1.12.9b4.linux-amd64.tar.gz
+wget https://go-boringcrypto.storage.googleapis.com/go1.13b4.linux-amd64.tar.gz
+tar -C /usr/local -xzf go1.13b4.linux-amd64.tar.gz
 ```
 
 ## Set GOPATH

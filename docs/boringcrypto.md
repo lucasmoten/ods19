@@ -41,7 +41,7 @@ Go+BoringCrypto modifies the crypto package of Go programming language to check 
 
 The latest versions of Go+BoringCrypto are acquired from the S3 go-boringcrypto bucket whose contents can be listed at https://go-boringcrypto.storage.googleapis.com/
 
-As of this writing, the current version of Go+BoringCrypto used by the project is go1.12.9b4
+As of this writing, the current version of Go+BoringCrypto used by the project is go1.13b4
 
 Building projects with Go+BoringCrypto is performed the same way as that when using Go Native.
 

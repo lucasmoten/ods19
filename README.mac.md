@@ -4,7 +4,7 @@
 
 Make sure `go` is installed
 
-At the time of writing, the latest available version was 1.12.9
+At the time of writing, the latest available version was 1.13
 
 Go may be downloaded from https://golang.org/dl/
 
