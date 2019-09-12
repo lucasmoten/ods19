@@ -9,15 +9,15 @@ previewed [here](./docs/home.md), or accessed from this [live instance on MEME](
 
 # Developers Using Object Drive
 
-To integrate another service or application with Object Drive, we recommend using Docker. Images for the 51th release of the service and database are available here:
+To integrate another service or application with Object Drive, we recommend using Docker. Images for the 52st release of the service and database are available here:
 
-* docker-dime.di2e.net/dime/object-drive-server:1.0.21b4
-* docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.21b4
+* docker-dime.di2e.net/dime/object-drive-server:1.0.22b4
+* docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.22b4
 
 Those wanting to experiment with the most recent changes can use these images
 
-* docker-dime.di2e.net/dime/object-drive-server:1.0.22b4-release-candidate
-* docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.22b4-release-candidate
+* docker-dime.di2e.net/dime/object-drive-server:1.0.23b4-release-candidate
+* docker-dime.di2e.net/dime/object-drive-metadatadb:1.0.23b4-release-candidate
 
 There is no 'latest' tagged images unless you build them from the source herein. Any such tags are wholely unsupported and any requests for such will be redirected to the above image tags
 

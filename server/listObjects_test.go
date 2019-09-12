@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"bitbucket.di2e.net/dime/object-drive-server/client"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 
 	"bitbucket.di2e.net/dime/object-drive-server/protocol"
@@ -559,4 +560,43 @@ Content-Type: image/png
 	} else {
 		t.Logf("Object returned in list didn't match expected name. Got '%s', expected '%s'", ret.Objects[0].Name, theFilename)
 	}
+}
+
+func TestListObjectsOfFolder1000(t *testing.T) {
+
+	if testing.Short() {
+		t.Skip()
+	}
+	tester10 := 0
+	acm := `{"version":"2.1.0","classif":"u","dissem_countries":["USA"]}`
+	maxobjects := 1000
+
+	// 1. create a folder
+	folderResponse, err := clients[tester10].C.CreateObject(client.CreateObjectRequest{Name: "TestListObjectsOfFolder1000", TypeName: "Folder", RawAcm: acm}, nil)
+	if err != nil {
+		t.Logf("Unable to create folder")
+		t.FailNow()
+	}
+
+	// 2. create 1000 objects in the folder
+	for i := 0; i < maxobjects; i++ {
+		_, err := clients[tester10].C.CreateObject(client.CreateObjectRequest{Name: "ChildItem" + strconv.Itoa(i), TypeName: "File", RawAcm: acm, ParentID: folderResponse.ID}, nil)
+		if err != nil {
+			t.Logf("Unable to create child %d %v", i, err)
+			t.FailNow()
+		}
+	}
+
+	// 3. list the contents of the folder
+	pagingRequest := client.PagingRequest{ObjectID: folderResponse.ID, PageNumber: 1, PageSize: maxobjects}
+	folderResults, err := clients[tester10].C.Search(pagingRequest, false)
+	if err != nil {
+		t.Logf("Unable to list folder, %v", err)
+		t.FailNow()
+	}
+	if folderResults.PageRows != maxobjects {
+		t.Logf("folderResults.PageRows = %d, expected %d", folderResults.PageRows, maxobjects)
+		t.FailNow()
+	}
+
 }
