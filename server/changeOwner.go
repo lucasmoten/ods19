@@ -169,7 +169,7 @@ func (h AppServer) changeOwnerRecursive(ctx context.Context, newOwner string, id
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "OWNERSHIP_MODIFY")
 
 	page := 1
-	pr := dao.PagingRequest{PageNumber: page, PageSize: dao.MaxPageSize}
+	pr := dao.PagingRequest{PageNumber: page, PageSize: int(h.Conf.MaxPageSize)}
 	obj := models.ODObject{ID: id}
 
 	children, err := d.GetChildObjectsWithProperties(pr, obj)

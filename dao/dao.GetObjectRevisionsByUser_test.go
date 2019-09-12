@@ -94,7 +94,7 @@ func TestDAOGetObjectRevisionsByUser(t *testing.T) {
 
 	// Get list of revisions
 	user := users[1]
-	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: dao.MaxPageSize, SortSettings: []dao.SortSetting{dao.SortSetting{SortField: "changecount", SortAscending: false}}}
+	pagingRequest := dao.PagingRequest{PageNumber: 1, PageSize: 20, SortSettings: []dao.SortSetting{dao.SortSetting{SortField: "changecount", SortAscending: false}}}
 	resultset, err := d.GetObjectRevisionsByUser(user, pagingRequest, object, false)
 	if err != nil {
 		t.Error("Error getting revisions for object")

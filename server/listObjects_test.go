@@ -595,8 +595,11 @@ func TestListObjectsOfFolder1000(t *testing.T) {
 		t.FailNow()
 	}
 	if folderResults.PageRows != maxobjects {
-		t.Logf("folderResults.PageRows = %d, expected %d", folderResults.PageRows, maxobjects)
-		t.FailNow()
+		// we are constrained by service settings. Verify that total is ok
+		if folderResults.TotalRows != maxobjects {
+			t.Logf("folderResults.TotalRows = %d, expected %d", folderResults.TotalRows, maxobjects)
+			t.FailNow()
+		}
 	}
 
 }

@@ -115,7 +115,7 @@ func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.O
 	// Process children
 	hasUndeletedChildren := true
 	deletedAtLeastOne := true
-	pagingRequest := PagingRequest{PageNumber: 1, PageSize: MaxPageSize}
+	pagingRequest := PagingRequest{PageNumber: 1, PageSize: 100}
 	for hasUndeletedChildren {
 		pagedResultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject, true, false)
 		hasUndeletedChildren = (pagedResultset.PageCount > pagingRequest.PageNumber) && deletedAtLeastOne

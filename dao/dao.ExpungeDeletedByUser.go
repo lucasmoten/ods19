@@ -12,7 +12,7 @@ func (dao *DataAccessLayer) ExpungeDeletedByUser(user models.ODUser, pageSize in
 	defer util.Time("ExpungeDeletedByUser")()
 
 	if pageSize <= 0 {
-		pageSize = 10000
+		pageSize = 100
 	}
 
 	pagingRequest := PagingRequest{
