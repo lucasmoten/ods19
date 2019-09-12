@@ -59,7 +59,7 @@ func TestCors(t *testing.T) {
 
 	// Also check that normal methods get origin checks:
 	// Make an arbitrary request, where we set origin and get it reflected back as allowed
-	req, err = http.NewRequest("GET", mountPoint+"/userstats", nil)
+	req, err = http.NewRequest("GET", mountPoint+"/ping", nil)
 	if err != nil {
 		t.Errorf("Unable to generate request:%v", err)
 		t.FailNow()

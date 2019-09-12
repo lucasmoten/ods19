@@ -391,8 +391,10 @@ func (h AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch {
 		// - user profile usage information
 		case h.Routes.UserStats.RX.MatchString(uri):
-			matched = "UserStats"
-			herr = h.userStats(ctx, w, r)
+			herr = do404(ctx, w, r)
+			h.publishError(gem, herr)
+			//matched = "UserStats"
+			//herr = h.userStats(ctx, w, r)
 		// - get object properties
 		case h.Routes.ObjectProperties.RX.MatchString(uri):
 			matched = "ObjectProperties"
