@@ -22,8 +22,8 @@ RUN yum -y update; \
     yum -y install gcc;
 
 # Go
-RUN wget https://go-boringcrypto.storage.googleapis.com/go1.12.9b4.linux-amd64.tar.gz
-RUN tar -C /usr/local -xzf go1.12.9b4.linux-amd64.tar.gz
+RUN wget https://go-boringcrypto.storage.googleapis.com/go1.13b4.linux-amd64.tar.gz
+RUN tar -C /usr/local -xzf go1.13b4.linux-amd64.tar.gz
 ENV PATH /usr/local/go/bin:/go/bin:$PATH
 ENV GOPATH /go
 
