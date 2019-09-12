@@ -2234,22 +2234,6 @@ This is effectively the same as calling the operation Delete Object Forever for 
                 "expunged_count": 20
             }	        
 
-## User Stats [/userstats]
-
-User Stats provides metrics information for the user's total number of objects and revisions and the amount of size consumed in the system.
-
-### User Stats [GET]
-
-+ Request (application/json)
-
-+ Response 200 (application/json)
-    + Attributes (UserStats)
-    
-+ Response 500
-
-        Internal Server Error
-
-
 # Group Auxiliary &amp; Bulk Operations
 
 ---
@@ -3252,10 +3236,3 @@ The UI will accumulate a list of file ID values to include in a zip file.
 + containsUSPersonsData: `No` (string, optional) - Indicates if this object contains US Persons data.  Allowed values are `Yes`, `No`, and `Unknown`.
 + exemptFromFOIA: `No` (string, optional) - Indicates if this object is exempt from Freedom of Information Act requests.  Allowed values are `Yes`, `No`, and `Unknown`.
 
-## UserStats (object)
-
-+ totalObjects: 24 (number) - The number of current objects that are stored.
-+ totalObjectsWithRevision: 432 (number) - The number of versioned objects that are stored.
-+ totalObjectsSize: 249234 (number) - The total size of objects in bytes, which could be a very large number.
-+ totalObjectsWithRevisionSize: 23478234 (number) - The total size of versioned objects in bytes, which may be very large.
-+ objectStorageMetrics: ObjectStorageMetric (array[ObjectStorageMetric]) - An array of ObjectStorageMetrics denoting the type of object, quantity of base object and revisions, and size used by base object and revision.

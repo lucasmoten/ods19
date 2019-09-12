@@ -14,6 +14,9 @@ import (
 func TestUserStats(t *testing.T) {
 	typeName := "TestUserStats"
 
+	// This endpoint is disabled as of 1.0.23
+	t.Skip()
+
 	clientID := 0
 	if testing.Short() {
 		t.Skip()

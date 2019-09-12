@@ -22,6 +22,8 @@ FORMAT: 1A
 * OPS: Jenkins and Docker updated to build with 1.13b4
 * TST: Adding TestListObjectsOfFolder1000
 * ENH: New environment variable to constrain list/search queries `OD_SERVER_MAXPAGESIZE`
+* DOC: Removed /userstats documentation
+* REF: Disabled /userstats endpoint
 
 ## Release v1.0.22 (August 30, 2019) 52
 ---------------------
