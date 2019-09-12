@@ -35,6 +35,13 @@ func (h AppServer) getBulkProperties(ctx context.Context, w http.ResponseWriter,
 	}
 	json.Unmarshal(bytes, &objects)
 
+	// Check size of request to ensure within bounds for max page size
+	if len(objects.ObjectIds) > int(h.Conf.MaxPageSize) {
+		herr := NewAppError(http.StatusBadRequest, err, fmt.Sprintf("too many objects requested. limited to %d", h.Conf.MaxPageSize))
+		h.publishError(gem, herr)
+		return herr
+	}
+
 	var bulkResponse protocol.ObjectResultset
 	bulkResponse.PageNumber = 1
 	bulkResponse.PageCount = 1

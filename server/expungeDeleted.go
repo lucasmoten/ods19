@@ -29,7 +29,7 @@ func (h AppServer) expungeDeleted(ctx context.Context, w http.ResponseWriter, r 
 	gem.Action = "delete"
 	gem.Payload.Audit = audit.WithType(gem.Payload.Audit, "EventDelete")
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "DELETE")
-	pageSize := 10000
+	pageSize := int(h.Conf.MaxPageSize)
 	pageSizeStr := r.URL.Query()["pageSize"]
 	if len(pageSizeStr) > 0 {
 		var err error
@@ -39,6 +39,9 @@ func (h AppServer) expungeDeleted(ctx context.Context, w http.ResponseWriter, r 
 			h.publishError(gem, herr)
 			return herr
 		}
+	}
+	if pageSize > int(h.Conf.MaxPageSize) {
+		pageSize = int(h.Conf.MaxPageSize)
 	}
 	expungedObjects, err := dao.ExpungeDeletedByUser(user, pageSize)
 	if err != nil {

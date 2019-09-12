@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 )
 
@@ -108,6 +109,15 @@ func NewPagingRequest(r *http.Request, captured map[string]string, isObjectIDReq
 		}
 	default:
 		return nil, errors.New("Unsupported HTTP Method")
+	}
+
+	// Constrain page size
+	if pagingRequest.PageSize <= 0 {
+		pagingRequest.PageSize = 1
+	}
+	maxPageSizeAllowed, _ := strconv.Atoi(config.GetEnvOrDefault(config.OD_SERVER_MAXPAGESIZE, "20"))
+	if pagingRequest.PageSize > maxPageSizeAllowed {
+		pagingRequest.PageSize = maxPageSizeAllowed
 	}
 
 	// Look for presence of objectId

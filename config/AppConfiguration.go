@@ -281,6 +281,8 @@ type ServerSettingsConfiguration struct {
 	HeaderSessionIDEnabledString string `yaml:"header_sessionid_enabled"`
 	// HeaderSessionIDName indicates the name of the header field for the session identifier
 	HeaderSessionIDName string `yaml:"header_sessionid_name"`
+	// MaxPageSize is the maximum number of results per page allowed for list/search operations
+	MaxPageSize int64 `yaml:"max_page_size"`
 }
 
 // UserAOCacheConfiguration holds configuration for managing user ao cache rebuilds
@@ -613,6 +615,9 @@ func newServerSettingsFromEnv(confFile AppConfiguration, opts ValueOpts) ServerS
 	settings.HeaderServerName = cascade(OD_HEADER_SERVER_NAME, confFile.ServerSettings.HeaderServerName, "odrive-server")
 	settings.HeaderSessionIDEnabled = CascadeBoolFromString(OD_HEADER_SESSIONID_ENABLED, confFile.ServerSettings.HeaderSessionIDEnabledString, true)
 	settings.HeaderSessionIDName = cascade(OD_HEADER_SESSIONID_NAME, confFile.ServerSettings.HeaderSessionIDName, "Session-Id")
+
+	// Max page size limiter added in 1.0.23
+	settings.MaxPageSize = cascadeInt(OD_SERVER_MAXPAGESIZE, confFile.ServerSettings.MaxPageSize, 100)
 
 	return settings
 }
@@ -1134,6 +1139,7 @@ func setEnvironmentFromConfiguration(conf AppConfiguration) {
 	os.Setenv(OD_SERVER_CERT, conf.ServerSettings.ServerCertChain)
 	os.Setenv(OD_SERVER_CIPHERS, strings.Join(conf.ServerSettings.CipherSuites, ","))
 	os.Setenv(OD_SERVER_KEY, conf.ServerSettings.ServerKey)
+	os.Setenv(OD_SERVER_MAXPAGESIZE, strconv.FormatInt(conf.ServerSettings.MaxPageSize, 10))
 	os.Setenv(OD_SERVER_PORT, conf.ServerSettings.ListenPort)
 	os.Setenv(OD_SERVER_STATIC_ROOT, conf.ServerSettings.PathToStaticFiles)
 	os.Setenv(OD_SERVER_TEMPLATE_ROOT, conf.ServerSettings.PathToTemplateFiles)

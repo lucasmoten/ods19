@@ -1,7 +1,7 @@
 package dao
 
-// MaxPageSize defines the maximum limit of rows returned from a query to the database
-const MaxPageSize int = 10000
+// absoluteMaxPageSize defines the maximum limit of rows returned from a query to the database
+const absoluteMaxPageSize int = 10000
 
 // GetSanitizedPageNumber takes an input number, and ensures that it is no less
 // than 1
@@ -18,8 +18,8 @@ func GetSanitizedPageSize(pageSize int) int {
 	if pageSize < 1 {
 		return 1
 	}
-	if pageSize > MaxPageSize {
-		return MaxPageSize
+	if pageSize > absoluteMaxPageSize {
+		return absoluteMaxPageSize
 	}
 	return pageSize
 }

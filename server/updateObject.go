@@ -293,7 +293,7 @@ func (h AppServer) updateObjectRecursive(ctx context.Context, applyable models.O
 	gem.Payload.Audit = audit.WithAction(gem.Payload.Audit, "SHARE_MODIFY")
 
 	page := 1
-	pr := dao.PagingRequest{PageNumber: page, PageSize: dao.MaxPageSize}
+	pr := dao.PagingRequest{PageNumber: page, PageSize: int(h.Conf.MaxPageSize)}
 
 	children, err := d.GetChildObjectsWithProperties(pr, applyable)
 	if err != nil {
