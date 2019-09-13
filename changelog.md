@@ -17,15 +17,15 @@ FORMAT: 1A
 
 # Group Changelog
 
-## Release v1.0.23 (Unreleased) 53
+## Release v1.0.23 (September 13, 2019) 53
 ---------------------
+* DOC: Removed /userstats documentation
+* DOC: Updated SIPG, SAG, and metadata guidance
+* FIX: Eliminated duplicate call to load properties in list operations
+* ENH: New environment variable to constrain list/search queries `OD_SERVER_MAXPAGESIZE`
+* ENH: Added cache for acmgrantee data and variable `OD_DB_ACMGRANTEECACHE_LRU_TIME`
 * OPS: Jenkins and Docker updated to build with 1.13b4
 * TST: Adding TestListObjectsOfFolder1000
-* ENH: New environment variable to constrain list/search queries `OD_SERVER_MAXPAGESIZE`
-* DOC: Removed /userstats documentation
-* REF: Disabled /userstats endpoint
-* FIX: Eliminated duplicate call to load properties in list operations
-* ENH: Added cache for acmgrantee data and variable `OD_DB_ACMGRANTEECACHE_LRU_TIME`
 
 ## Release v1.0.22 (August 30, 2019) 52
 ---------------------
