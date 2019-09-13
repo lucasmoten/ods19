@@ -19,7 +19,7 @@ func (dao *DataAccessLayer) GetChildObjects(pagingRequest PagingRequest, object 
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getChildObjectsInTransaction(tx, pagingRequest, object, loadPermissions, loadProperties)
+	response, err := getChildObjectsInTransaction(dao, tx, pagingRequest, object, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetChildObjects", zap.Error(err))
 		tx.Rollback()
@@ -29,7 +29,7 @@ func (dao *DataAccessLayer) GetChildObjects(pagingRequest PagingRequest, object 
 	return response, err
 }
 
-func getChildObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest, object models.ODObject, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
+func getChildObjectsInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, pagingRequest PagingRequest, object models.ODObject, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	query := `
     select 
@@ -53,7 +53,7 @@ func getChildObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest, obje
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], loadPermissions, loadProperties)
+		obj, err := getObjectInTransaction(dao, tx, response.Objects[i], loadPermissions, loadProperties)
 		if err != nil {
 			return response, err
 		}

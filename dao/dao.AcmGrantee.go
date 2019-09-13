@@ -21,7 +21,7 @@ func (dao *DataAccessLayer) GetAcmGrantee(grantee string) (models.ODAcmGrantee, 
 		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODAcmGrantee{}, err
 	}
-	response, err := getAcmGranteeInTransaction(tx, grantee)
+	response, err := getAcmGranteeInTransaction(dao, tx, grantee)
 	if err != nil {
 		dao.GetLogger().Error("error in getacmgrantee", zap.Error(err))
 		tx.Rollback()
@@ -43,7 +43,7 @@ func (dao *DataAccessLayer) GetAcmGrantees(grantees []string) ([]models.ODAcmGra
 	acmgrantees := []models.ODAcmGrantee{}
 	var acmgrantee models.ODAcmGrantee
 	for _, grantee := range grantees {
-		acmgrantee, err = getAcmGranteeInTransaction(tx, grantee)
+		acmgrantee, err = getAcmGranteeInTransaction(dao, tx, grantee)
 		if err == nil {
 			acmgrantees = append(acmgrantees, acmgrantee)
 			// we can't commit yet, because we are in a loop
@@ -60,8 +60,16 @@ func (dao *DataAccessLayer) GetAcmGrantees(grantees []string) ([]models.ODAcmGra
 	return acmgrantees, err
 }
 
-func getAcmGranteeInTransaction(tx *sqlx.Tx, grantee string) (models.ODAcmGrantee, error) {
+func getAcmGranteeInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, grantee string) (models.ODAcmGrantee, error) {
 	var response models.ODAcmGrantee
+
+	// Check cache
+	if cacheItem := dao.AcmGranteeCache.Get(grantee); cacheItem != nil {
+		response := cacheItem.Value().(models.ODAcmGrantee)
+		return response, nil
+	}
+
+	// Get from database
 	query := `
     select 
         grantee
@@ -75,9 +83,16 @@ func getAcmGranteeInTransaction(tx *sqlx.Tx, grantee string) (models.ODAcmGrante
     where
         grantee = ?`
 	err := tx.Unsafe().Get(&response, query, grantee)
+
+	// Return error
 	if err != nil {
 		return response, err
 	}
+
+	// Add to cache
+	dao.AcmGranteeCache.Set(grantee, response, time.Duration(dao.AcmGranteeCacheLruTime)*time.Second)
+
+	// Return success
 	return response, err
 }
 
@@ -147,7 +162,7 @@ func createAcmGranteeInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, acmGrantee
 	acmGrantee.Grantee = models.AACFlatten(acmGrantee.Grantee)
 
 	var dbAcmGrantee models.ODAcmGrantee
-	dbAcmGrantee, err := getAcmGranteeInTransaction(tx, acmGrantee.Grantee)
+	dbAcmGrantee, err := getAcmGranteeInTransaction(dao, tx, acmGrantee.Grantee)
 	if err != nil || dbAcmGrantee.Grantee != acmGrantee.Grantee {
 
 		addAcmGranteeStatement, err := tx.Preparex(
@@ -165,7 +180,7 @@ func createAcmGranteeInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, acmGrantee
 			// Possible race condition here... Grantee must be unique, and if
 			// a parallel request is adding them then this attempt to insert will fail.
 			// Attempt to retrieve them
-			dbAcmGrantee, err = getAcmGranteeInTransaction(tx, acmGrantee.Grantee)
+			dbAcmGrantee, err = getAcmGranteeInTransaction(dao, tx, acmGrantee.Grantee)
 			if err != nil {
 				dao.GetLogger().Warn("error getting acmgrantee in transaction", zap.Error(err))
 				return dbAcmGrantee, err
@@ -183,7 +198,7 @@ func createAcmGranteeInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, acmGrantee
 	}
 	//addAcmGranteeStatement.Close()
 	// Get the newly added grantee
-	dbAcmGrantee, err = getAcmGranteeInTransaction(tx, acmGrantee.Grantee)
+	dbAcmGrantee, err = getAcmGranteeInTransaction(dao, tx, acmGrantee.Grantee)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			dao.GetLogger().Error("grantee was not found even after just adding", zap.Error(err))

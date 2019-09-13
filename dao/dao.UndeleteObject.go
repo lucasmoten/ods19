@@ -18,7 +18,7 @@ func (dao *DataAccessLayer) UndeleteObject(object *models.ODObject) (models.ODOb
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObject{}, err
 	}
-	dbObject, err := undeleteObjectInTransaction(dao.GetLogger(), tx, object)
+	dbObject, err := undeleteObjectInTransaction(dao, tx, object)
 	if err != nil {
 		dao.GetLogger().Error("Error in UndeleteObject", zap.Error(err))
 		tx.Rollback()
@@ -28,7 +28,7 @@ func (dao *DataAccessLayer) UndeleteObject(object *models.ODObject) (models.ODOb
 	return dbObject, nil
 }
 
-func undeleteObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, object *models.ODObject) (models.ODObject, error) {
+func undeleteObjectInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, object *models.ODObject) (models.ODObject, error) {
 	loadPermissions := false
 	loadProperties := false
 	var dbObject models.ODObject
@@ -51,17 +51,17 @@ func undeleteObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, object *models
 	if _, err = undeleteStatement.Exec(object.ModifiedBy, object.ID); err != nil {
 		return dbObject, err
 	}
-	err = undeleteAncestorChildren(logger, tx, object)
+	err = undeleteAncestorChildren(dao, tx, object)
 	if err != nil {
 		return dbObject, err
 	}
 
-	dbObject, err = getObjectInTransaction(tx, *object, loadPermissions, loadProperties)
+	dbObject, err = getObjectInTransaction(dao, tx, *object, loadPermissions, loadProperties)
 
 	return dbObject, nil
 }
 
-func undeleteAncestorChildren(logger *zap.Logger, tx *sqlx.Tx, object *models.ODObject) error {
+func undeleteAncestorChildren(dao *DataAccessLayer, tx *sqlx.Tx, object *models.ODObject) error {
 	var results models.ODObjectResultset
 
 	query := `select
@@ -102,7 +102,7 @@ func undeleteAncestorChildren(logger *zap.Logger, tx *sqlx.Tx, object *models.OD
 
 	err := tx.Select(&results.Objects, query, object.ID)
 	if err != nil {
-		logger.Error("Error from Select in undeleteAncestorChildren", zap.Error(err))
+		dao.GetLogger().Error("Error from Select in undeleteAncestorChildren", zap.Error(err))
 		return err
 	}
 
@@ -122,7 +122,7 @@ func undeleteAncestorChildren(logger *zap.Logger, tx *sqlx.Tx, object *models.OD
 
 	// Then, recursively call this function.
 	for _, child := range results.Objects {
-		err := undeleteAncestorChildren(logger, tx, &child)
+		err := undeleteAncestorChildren(dao, tx, &child)
 		if err != nil && err != sql.ErrNoRows {
 			return err
 		}

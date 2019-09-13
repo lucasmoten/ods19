@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/karlseguin/ccache"
 
 	"bitbucket.di2e.net/dime/object-drive-server/config"
 	"bitbucket.di2e.net/dime/object-drive-server/dao"
@@ -69,6 +70,11 @@ func init() {
 	}
 
 	d = &dao.DataAccessLayer{MetadataDB: db, Logger: config.RootLogger, DeadlockRetryCounter: 30, DeadlockRetryDelay: 55}
+
+	// add the acm cache
+	d.AcmGranteeCacheLruTime = 100
+	acmGranteeCache := ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50))
+	d.AcmGranteeCache = acmGranteeCache
 
 	// Create users referenced by these tests
 	user := models.ODUser{}

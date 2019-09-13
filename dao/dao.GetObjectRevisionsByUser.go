@@ -19,7 +19,7 @@ func (dao *DataAccessLayer) GetObjectRevisionsByUser(
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getObjectRevisionsByUserInTransaction(tx, user, pagingRequest, object, loadProperties)
+	response, err := getObjectRevisionsByUserInTransaction(dao, tx, user, pagingRequest, object, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetObjectRevisionsByUser", zap.Error(err))
 		tx.Rollback()
@@ -29,7 +29,7 @@ func (dao *DataAccessLayer) GetObjectRevisionsByUser(
 	return response, err
 }
 
-func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject, loadProperties bool) (models.ODObjectResultset, error) {
+func getObjectRevisionsByUserInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	query := `
     select 
@@ -97,7 +97,7 @@ func getObjectRevisionsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagi
 		// Permissions
 		if len(permissions) == 0 {
 			// Not yet retrieved, do it now
-			permissions, err = getPermissionsForObjectInTransaction(tx, object)
+			permissions, err = getPermissionsForObjectInTransaction(dao, tx, object)
 			if err != nil {
 				return response, err
 			}

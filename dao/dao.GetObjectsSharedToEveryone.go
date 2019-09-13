@@ -18,7 +18,7 @@ func (dao *DataAccessLayer) GetObjectsSharedToEveryone(user models.ODUser, pagin
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getObjectsSharedToEveryoneInTransaction(tx, user, pagingRequest, loadPermissions, loadProperties)
+	response, err := getObjectsSharedToEveryoneInTransaction(dao, tx, user, pagingRequest, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetObjectsSharedToEveryone", zap.Error(err))
 		tx.Rollback()
@@ -28,7 +28,7 @@ func (dao *DataAccessLayer) GetObjectsSharedToEveryone(user models.ODUser, pagin
 	return response, err
 }
 
-func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
+func getObjectsSharedToEveryoneInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 
 	// Only include those that are shared to everyone
@@ -56,7 +56,7 @@ func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pa
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], loadPermissions, loadProperties)
+		obj, err := getObjectInTransaction(dao, tx, response.Objects[i], loadPermissions, loadProperties)
 		if err != nil {
 			return response, err
 		}

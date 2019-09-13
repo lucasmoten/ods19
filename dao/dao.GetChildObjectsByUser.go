@@ -21,7 +21,7 @@ func (dao *DataAccessLayer) GetChildObjectsByUser(
 		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getChildObjectsByUserInTransaction(tx, user, pagingRequest, object, loadPermissions, loadProperties)
+	response, err := getChildObjectsByUserInTransaction(dao, tx, user, pagingRequest, object, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("error in getchildobjectsbyuser", zap.Error(err))
 		tx.Rollback()
@@ -31,7 +31,7 @@ func (dao *DataAccessLayer) GetChildObjectsByUser(
 	return response, err
 }
 
-func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
+func getChildObjectsByUserInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	// NOTE: distinct is unfortunately used here because object_permission
 	// allows multiple records per object and grantee.
@@ -58,7 +58,7 @@ func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], loadPermissions, loadProperties)
+		obj, err := getObjectInTransaction(dao, tx, response.Objects[i], loadPermissions, loadProperties)
 		if err != nil {
 			return response, err
 		}

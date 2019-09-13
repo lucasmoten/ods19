@@ -15,7 +15,7 @@ func (dao *DataAccessLayer) GetPermissionsForObject(object models.ODObject) ([]m
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return []models.ODObjectPermission{}, err
 	}
-	response, err := getPermissionsForObjectInTransaction(tx, object)
+	response, err := getPermissionsForObjectInTransaction(dao, tx, object)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetPermissionsForObject", zap.Error(err))
 		tx.Rollback()
@@ -26,7 +26,7 @@ func (dao *DataAccessLayer) GetPermissionsForObject(object models.ODObject) ([]m
 
 }
 
-func getPermissionsForObjectInTransaction(tx *sqlx.Tx, object models.ODObject) ([]models.ODObjectPermission, error) {
+func getPermissionsForObjectInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, object models.ODObject) ([]models.ODObjectPermission, error) {
 	response := []models.ODObjectPermission{}
 	query := `
     select 
@@ -64,7 +64,7 @@ func getPermissionsForObjectInTransaction(tx *sqlx.Tx, object models.ODObject) (
 		return response, err
 	}
 	for i, p := range response {
-		response[i].AcmGrantee, err = getAcmGranteeInTransaction(tx, p.Grantee)
+		response[i].AcmGrantee, err = getAcmGranteeInTransaction(dao, tx, p.Grantee)
 		if err != nil {
 			return response, err
 		}

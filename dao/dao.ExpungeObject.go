@@ -35,7 +35,7 @@ func (dao *DataAccessLayer) ExpungeObject(user models.ODUser, object models.ODOb
 	updateObjectStatement, err := expungeObjectInTransactionPrepare(tx)
 	defer updateObjectStatement.Close()
 
-	err = expungeObjectInTransaction(tx, user, object, explicit, updateObjectStatement)
+	err = expungeObjectInTransaction(dao, tx, user, object, explicit, updateObjectStatement)
 	if err != nil {
 		dao.GetLogger().Error("error in expungeobject", zap.Error(err))
 		tx.Rollback()
@@ -54,7 +54,7 @@ func expungeObjectInTransactionPrepare(tx *sqlx.Tx) (*sqlx.Stmt, error) {
     where id = ?`)
 }
 
-func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.ODObject, explicit bool, updateObjectStatement *sqlx.Stmt) error {
+func expungeObjectInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser, object models.ODObject, explicit bool, updateObjectStatement *sqlx.Stmt) error {
 	// Pre-DB Validation
 	if object.ID == nil {
 		return errors.New("Object ID was not specified for object being expunged")
@@ -64,7 +64,7 @@ func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.O
 	}
 
 	// Fetch object
-	dbObject, err := getObjectInTransaction(tx, object, false, false)
+	dbObject, err := getObjectInTransaction(dao, tx, object, false, false)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.O
 	loadPermissions := true
 	loadProperties := false
 	for hasUndeletedChildren {
-		pagedResultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject, loadPermissions, loadProperties)
+		pagedResultset, err := getChildObjectsInTransaction(dao, tx, pagingRequest, dbObject, loadPermissions, loadProperties)
 		hasUndeletedChildren = (pagedResultset.PageCount > pagingRequest.PageNumber) && deletedAtLeastOne
 		for i := 0; i < len(pagedResultset.Objects); i++ {
 			deletedAtLeastOne = false
@@ -133,7 +133,7 @@ func expungeObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.O
 				}
 				if authorizedToDelete {
 					pagedResultset.Objects[i].ModifiedBy = object.ModifiedBy
-					err = expungeObjectInTransaction(tx, user, pagedResultset.Objects[i], false, updateObjectStatement)
+					err = expungeObjectInTransaction(dao, tx, user, pagedResultset.Objects[i], false, updateObjectStatement)
 					if err != nil {
 						return err
 					}

@@ -43,7 +43,7 @@ func addPermissionToObjectInTransaction(tx *sqlx.Tx, dao *DataAccessLayer, objec
 	// Check that grantee specified exists
 	permission.Grantee = models.AACFlatten(permission.Grantee)
 	dao.GetLogger().Debug("dao passing  txn into getAcmGranteeInTransaction")
-	dbAcmGrantee, dbAcmGranteeErr := getAcmGranteeInTransaction(tx, permission.Grantee)
+	dbAcmGrantee, dbAcmGranteeErr := getAcmGranteeInTransaction(dao, tx, permission.Grantee)
 	dao.GetLogger().Debug("dao returned txn from getAcmGranteeInTransaction")
 	if dbAcmGranteeErr == sql.ErrNoRows {
 		// Add if it didn't

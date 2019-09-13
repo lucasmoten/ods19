@@ -122,6 +122,7 @@ The database is used to store metadata about objects and supports querying for m
 
 | Name | Description | 
 | --- | --- | 
+| OD_DB_ACMGRANTEECACHE_LRU_TIME <br />_(since v1.0.23)_ | The time in seconds that an acmgrantee will be cached in memory unless necessary to evict per least-recently-used caching constraints. <br />__`Default: 600`__ |
 | OD_DB_CA <br />_(since v1.0)_ | The path to the certificate authority folder or file containing public certificate(s) in unencrypted PEM format to trust as the server when connecting to the database over TLS.  When connecting to Amazon RDS, use the rds-combined-ca-bundle.pem. Additional documentation may be [found here](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html) |
 | OD_DB_CERT <br />_(since v1.0)_ | The path to the public certificate in unencrypted PEM format for the user credentials connecting to the database when using 2 way SSL.<br />This option is not available for Amazon RDS.  |
 | OD_DB_CN <br />_(since v1.0.1.12)_ | The common name of the x509 certificate for the database.<br />This option is not available for Amazon RDS. |
