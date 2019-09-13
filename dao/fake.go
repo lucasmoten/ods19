@@ -179,7 +179,7 @@ func (fake *FakeDAO) GetObjectRevision(object models.ODObject, loadProperties bo
 }
 
 // GetObjectRevisionsByUser for FakeDAO
-func (fake *FakeDAO) GetObjectRevisionsByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject, withProperties bool) (models.ODObjectResultset, error) {
+func (fake *FakeDAO) GetObjectRevisionsByUser(user models.ODUser, pagingRequest PagingRequest, object models.ODObject, loadProperties bool) (models.ODObjectResultset, error) {
 	return fake.ObjectResultSet, fake.Err
 }
 

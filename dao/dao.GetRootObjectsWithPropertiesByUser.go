@@ -3,7 +3,6 @@ package dao
 import (
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -13,26 +12,19 @@ import (
 // group.
 func (dao *DataAccessLayer) GetRootObjectsWithPropertiesByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	defer util.Time("GetRootObjectsWithPropertiesByUser")()
+	loadPermissions := true
+	loadProperties := true
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getRootObjectsWithPropertiesByUserInTransaction(tx, user, pagingRequest)
+	response, err := getRootObjectsByUserInTransaction(tx, user, pagingRequest, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetRootObjectsWithPropertiesByUser", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
-	}
-	return response, err
-}
-
-func getRootObjectsWithPropertiesByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
-
-	response, err := getRootObjectsByUserInTransaction(tx, user, pagingRequest)
-	if err != nil {
-		return response, err
 	}
 	return response, err
 }

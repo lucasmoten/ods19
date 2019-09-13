@@ -12,14 +12,14 @@ import (
 
 // GetObjectRevisionsByUser retrieves a list of revisions for an object.
 func (dao *DataAccessLayer) GetObjectRevisionsByUser(
-	user models.ODUser, pagingRequest PagingRequest, object models.ODObject, withProperties bool) (models.ODObjectResultset, error) {
+	user models.ODUser, pagingRequest PagingRequest, object models.ODObject, loadProperties bool) (models.ODObjectResultset, error) {
 	defer util.Time("GetObjectRevisionsByUser")()
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getObjectRevisionsByUserInTransaction(tx, user, pagingRequest, object, withProperties)
+	response, err := getObjectRevisionsByUserInTransaction(tx, user, pagingRequest, object, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetObjectRevisionsByUser", zap.Error(err))
 		tx.Rollback()
