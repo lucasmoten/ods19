@@ -18,7 +18,7 @@ func (dao *DataAccessLayer) GetObjectRevision(object models.ODObject, loadProper
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObject{}, err
 	}
-	dbObject, err := getObjectRevisionInTransaction(tx, object, loadProperties)
+	dbObject, err := getObjectRevisionInTransaction(dao, tx, object, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetObjectRevision", zap.Error(err))
 		tx.Rollback()
@@ -28,7 +28,7 @@ func (dao *DataAccessLayer) GetObjectRevision(object models.ODObject, loadProper
 	return dbObject, err
 }
 
-func getObjectRevisionInTransaction(tx *sqlx.Tx, object models.ODObject, loadProperties bool) (models.ODObject, error) {
+func getObjectRevisionInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, object models.ODObject, loadProperties bool) (models.ODObject, error) {
 	var dbObject models.ODObject
 
 	query := `
@@ -73,7 +73,7 @@ func getObjectRevisionInTransaction(tx *sqlx.Tx, object models.ODObject, loadPro
             `
 	err := tx.Unsafe().Get(&dbObject, query, object.ID, object.ChangeCount)
 	if err == nil {
-		dbPermissions, dbPermErr := getPermissionsForObjectInTransaction(tx, object)
+		dbPermissions, dbPermErr := getPermissionsForObjectInTransaction(dao, tx, object)
 		dbObject.Permissions = dbPermissions
 		if dbPermErr != nil {
 			err = dbPermErr

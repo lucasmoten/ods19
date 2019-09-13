@@ -22,7 +22,7 @@ func (dao *DataAccessLayer) GetObjectsIHaveShared(user models.ODUser, pagingRequ
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getObjectsIHaveSharedInTransaction(tx, user, pagingRequest, loadPermissions, loadProperties)
+	response, err := getObjectsIHaveSharedInTransaction(dao, tx, user, pagingRequest, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetObjectsIHaveShared", zap.Error(err))
 		tx.Rollback()
@@ -32,7 +32,7 @@ func (dao *DataAccessLayer) GetObjectsIHaveShared(user models.ODUser, pagingRequ
 	return response, err
 }
 
-func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
+func getObjectsIHaveSharedInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 
 	query := `
@@ -62,7 +62,7 @@ func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingR
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], loadPermissions, loadProperties)
+		obj, err := getObjectInTransaction(dao, tx, response.Objects[i], loadPermissions, loadProperties)
 		if err != nil {
 			return response, err
 		}

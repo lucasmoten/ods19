@@ -11,6 +11,7 @@ import (
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
 	"github.com/jmoiron/sqlx"
+	"github.com/karlseguin/ccache"
 	"go.uber.org/zap"
 )
 
@@ -94,6 +95,10 @@ type DataAccessLayer struct {
 	// Parameters to resolve deadlock needed by interface methods
 	DeadlockRetryCounter int64
 	DeadlockRetryDelay   int64
+	// AcmGranteeCacheLruTime is the allowable time in seconds to hold a record in LRU Cache
+	AcmGranteeCacheLruTime int64
+	// AcmGranteeCache contains a cache of recently referenced acmgrantee records. These are often called for object permissions
+	AcmGranteeCache *ccache.Cache
 }
 
 // Verify that DataAccessLayer Implements DAO.
@@ -146,6 +151,9 @@ func defaults(d *DataAccessLayer, conf config.DatabaseConfiguration) {
 	d.ReadOnly = true
 	d.DeadlockRetryCounter = conf.DeadlockRetryCounter
 	d.DeadlockRetryDelay = conf.DeadlockRetryDelay
+	d.AcmGranteeCacheLruTime = conf.AcmGranteeCacheLruTime
+	acmGranteeCache := ccache.New(ccache.Configure().MaxSize(1000).ItemsToPrune(50))
+	d.AcmGranteeCache = acmGranteeCache
 }
 
 // GetLogger is a logger, probably for this session

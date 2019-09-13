@@ -20,7 +20,7 @@ func (dao *DataAccessLayer) GetRootObjectsByGroup(groupGranteeName string, user 
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getRootObjectsByGroupInTransaction(tx, groupGranteeName, user, pagingRequest, loadPermissions, loadProperties)
+	response, err := getRootObjectsByGroupInTransaction(dao, tx, groupGranteeName, user, pagingRequest, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetRootObjectsByGroup", zap.Error(err))
 		tx.Rollback()
@@ -30,7 +30,7 @@ func (dao *DataAccessLayer) GetRootObjectsByGroup(groupGranteeName string, user 
 	return response, err
 }
 
-func getRootObjectsByGroupInTransaction(tx *sqlx.Tx, groupGranteeName string, user models.ODUser, pagingRequest PagingRequest, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
+func getRootObjectsByGroupInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, groupGranteeName string, user models.ODUser, pagingRequest PagingRequest, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	// NOTE: While this looks similar to GetChildObjectsByUser there is more at
 	// stake here as there is the requirement that the object permission grantee
@@ -44,7 +44,7 @@ func getRootObjectsByGroupInTransaction(tx *sqlx.Tx, groupGranteeName string, us
 	query += MySQLSafeString(user.DistinguishedName)
 	query += `'`
 	query += ` where o.isdeleted = 0 and o.parentid is null `
-	query += buildFilterRequireObjectsGroupOwns(tx, groupGranteeName)
+	query += buildFilterRequireObjectsGroupOwns(dao, tx, groupGranteeName)
 	query += buildFilterSortAndLimit(pagingRequest)
 	err := tx.Select(&response.Objects, query)
 	if err != nil {
@@ -61,7 +61,7 @@ func getRootObjectsByGroupInTransaction(tx *sqlx.Tx, groupGranteeName string, us
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], loadPermissions, loadProperties)
+		obj, err := getObjectInTransaction(dao, tx, response.Objects[i], loadPermissions, loadProperties)
 		if err != nil {
 			return response, err
 		}

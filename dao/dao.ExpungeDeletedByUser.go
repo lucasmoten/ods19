@@ -53,7 +53,7 @@ func (dao *DataAccessLayer) ExpungeDeletedByUser(user models.ODUser, pageSize in
 }
 
 func (dao *DataAccessLayer) expungeDeletedByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
-	response, err := getTrashedObjectsByUserInTransaction(tx, user, pagingRequest)
+	response, err := getTrashedObjectsByUserInTransaction(dao, tx, user, pagingRequest)
 	updateObjectStatement, err := expungeObjectInTransactionPrepare(tx)
 	var expungedObjects models.ODObjectResultset
 	defer updateObjectStatement.Close()
@@ -62,7 +62,7 @@ func (dao *DataAccessLayer) expungeDeletedByUserInTransaction(tx *sqlx.Tx, user 
 	}
 	for _, r := range response.Objects {
 		//Note: this will do a retrieve of the object by ID!
-		err := expungeObjectInTransaction(tx, user, r, true, updateObjectStatement)
+		err := expungeObjectInTransaction(dao, tx, user, r, true, updateObjectStatement)
 		if err != nil {
 			return expungedObjects, err
 		}

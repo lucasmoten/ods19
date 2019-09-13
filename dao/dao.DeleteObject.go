@@ -31,7 +31,7 @@ func (dao *DataAccessLayer) DeleteObject(user models.ODUser, object models.ODObj
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return err
 	}
-	err = deleteObjectInTransaction(tx, user, object, explicit)
+	err = deleteObjectInTransaction(dao, tx, user, object, explicit)
 	if err != nil {
 		dao.GetLogger().Error("Error in DeleteObject", zap.Error(err))
 		tx.Rollback()
@@ -41,7 +41,7 @@ func (dao *DataAccessLayer) DeleteObject(user models.ODUser, object models.ODObj
 	return err
 }
 
-func deleteObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.ODObject, explicit bool) error {
+func deleteObjectInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser, object models.ODObject, explicit bool) error {
 	// Pre-DB Validation
 	if object.ID == nil {
 		return errors.New("Object ID was not specified for object being deleted")
@@ -51,7 +51,7 @@ func deleteObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.OD
 	}
 
 	// Fetch object
-	dbObject, err := getObjectInTransaction(tx, object, false, false)
+	dbObject, err := getObjectInTransaction(dao, tx, object, false, false)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func deleteObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.OD
 	deletedAtLeastOne := true
 	pagingRequest := PagingRequest{PageNumber: 1, PageSize: 100}
 	for hasUndeletedChildren {
-		pagedResultset, err := getChildObjectsInTransaction(tx, pagingRequest, dbObject, true, false)
+		pagedResultset, err := getChildObjectsInTransaction(dao, tx, pagingRequest, dbObject, true, false)
 		hasUndeletedChildren = (pagedResultset.PageCount > pagingRequest.PageNumber) && deletedAtLeastOne
 		for i := 0; i < len(pagedResultset.Objects); i++ {
 			deletedAtLeastOne = false
@@ -118,7 +118,7 @@ func deleteObjectInTransaction(tx *sqlx.Tx, user models.ODUser, object models.OD
 				}
 				if authorizedToDelete {
 					pagedResultset.Objects[i].ModifiedBy = object.ModifiedBy
-					err = deleteObjectInTransaction(tx, user, pagedResultset.Objects[i], false)
+					err = deleteObjectInTransaction(dao, tx, user, pagedResultset.Objects[i], false)
 					if err != nil {
 						return err
 					}

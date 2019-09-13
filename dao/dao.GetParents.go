@@ -28,7 +28,7 @@ func (dao *DataAccessLayer) GetParents(child models.ODObject) ([]models.ODObject
 		return nil, err
 	}
 	dao.GetLogger().Debug("dao passing  txn into getParentsInTransaction")
-	parents, err = getParentsInTransaction(tx, child, loadPermissions, loadProperties)
+	parents, err = getParentsInTransaction(dao, tx, child, loadPermissions, loadProperties)
 	dao.GetLogger().Debug("dao returned txn from getParentsInTransaction")
 	if err != nil {
 		dao.GetLogger().Debug("dao rolling back txn for GetParents")
@@ -43,12 +43,12 @@ func (dao *DataAccessLayer) GetParents(child models.ODObject) ([]models.ODObject
 	return parents, nil
 }
 
-func getParentsInTransaction(tx *sqlx.Tx, child models.ODObject, loadPermissions bool, loadProperties bool) ([]models.ODObject, error) {
+func getParentsInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, child models.ODObject, loadPermissions bool, loadProperties bool) ([]models.ODObject, error) {
 	var parents []models.ODObject
 	var queryObj models.ODObject
 	queryObj.ID = child.ParentID
 	for {
-		parent, err := getObjectInTransaction(tx, queryObj, loadPermissions, loadProperties)
+		parent, err := getObjectInTransaction(dao, tx, queryObj, loadPermissions, loadProperties)
 		if err != nil {
 			return nil, err
 		}

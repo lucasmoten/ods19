@@ -19,7 +19,7 @@ func (dao *DataAccessLayer) GetRootObjectsWithPropertiesByUser(user models.ODUse
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getRootObjectsByUserInTransaction(tx, user, pagingRequest, loadPermissions, loadProperties)
+	response, err := getRootObjectsByUserInTransaction(dao, tx, user, pagingRequest, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetRootObjectsWithPropertiesByUser", zap.Error(err))
 		tx.Rollback()

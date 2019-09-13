@@ -38,7 +38,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 	retryCounter := dao.DeadlockRetryCounter
 	retryDelay := dao.DeadlockRetryDelay
 	retryOnErrorMessageContains := []string{"Throttled", "Duplicate entry", "Deadlock", "Lock wait timeout exceeded", sql.ErrNoRows.Error()}
-	acmCreated, err = updateObjectInTransaction(logger, tx, dao, object)
+	acmCreated, err = updateObjectInTransaction(dao, tx, object)
 	for retryCounter > 0 && err != nil && util.ContainsAny(err.Error(), retryOnErrorMessageContains) {
 		logger.Debug("dao restarting transaction for UpdateObject", zap.String("retryReason", util.FirstMatch(err.Error(), retryOnErrorMessageContains)), zap.Int64("retryCounter", retryCounter))
 		tx.Rollback()
@@ -49,7 +49,7 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 			logger.Error("dao could not begin transaction", zap.Error(err))
 			return err
 		}
-		acmCreated, err = updateObjectInTransaction(logger, tx, dao, object)
+		acmCreated, err = updateObjectInTransaction(dao, tx, object)
 	}
 	if err != nil {
 		logger.Error("dao error in UpdateObject", zap.Error(err))
@@ -89,9 +89,10 @@ func (dao *DataAccessLayer) UpdateObject(object *models.ODObject) error {
 	return err
 }
 
-func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessLayer, object *models.ODObject) (bool, error) {
+func updateObjectInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, object *models.ODObject) (bool, error) {
 	loadPermissions := true
 	loadProperties := true
+	logger := dao.GetLogger()
 	var acmCreated bool
 
 	// Pre-DB Validation
@@ -115,7 +116,7 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	}
 
 	// Fetch current state of object
-	dbObject, err := getObjectInTransaction(tx, *object, loadPermissions, loadProperties)
+	dbObject, err := getObjectInTransaction(dao, tx, *object, loadPermissions, loadProperties)
 	if err != nil {
 		return acmCreated, fmt.Errorf("updateobject error retrieving object, %s", err.Error())
 	}
@@ -295,7 +296,7 @@ func updateObjectInTransaction(logger *zap.Logger, tx *sqlx.Tx, dao *DataAccessL
 	}
 
 	// Refetch object again with properties and permissions
-	dbObject, err = getObjectInTransaction(tx, *object, loadPermissions, loadProperties)
+	dbObject, err = getObjectInTransaction(dao, tx, *object, loadPermissions, loadProperties)
 	if err != nil {
 		return acmCreated, fmt.Errorf("updateobject error retrieving object %v, %s", object, err.Error())
 	}

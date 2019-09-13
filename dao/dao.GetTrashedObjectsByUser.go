@@ -15,7 +15,7 @@ func (dao *DataAccessLayer) GetTrashedObjectsByUser(user models.ODUser, pagingRe
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	results, err := getTrashedObjectsByUserInTransaction(tx, user, pagingRequest)
+	results, err := getTrashedObjectsByUserInTransaction(dao, tx, user, pagingRequest)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetTrashedObjectsByUser", zap.Error(err))
 		tx.Rollback()
@@ -25,7 +25,7 @@ func (dao *DataAccessLayer) GetTrashedObjectsByUser(user models.ODUser, pagingRe
 	return results, err
 }
 
-func getTrashedObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
+func getTrashedObjectsByUserInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	loadProperties := true
 	loadPermissions := true
 	var response models.ODObjectResultset
@@ -55,7 +55,7 @@ func getTrashedObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagin
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], loadPermissions, loadProperties)
+		obj, err := getObjectInTransaction(dao, tx, response.Objects[i], loadPermissions, loadProperties)
 		if err != nil {
 			return response, err
 		}

@@ -25,7 +25,7 @@ func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user models.ODUser,
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := searchObjectsByNameOrDescriptionInTransaction(tx, user, pagingRequest, loadProperties)
+	response, err := searchObjectsByNameOrDescriptionInTransaction(dao, tx, user, pagingRequest, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in SearchObjectsByNameOrDescription", zap.Error(err))
 		tx.Rollback()
@@ -35,7 +35,7 @@ func (dao *DataAccessLayer) SearchObjectsByNameOrDescription(user models.ODUser,
 	return response, err
 }
 
-func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
+func searchObjectsByNameOrDescriptionInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, loadProperties bool) (models.ODObjectResultset, error) {
 	loadPermissions := true
 	response := models.ODObjectResultset{}
 
@@ -64,7 +64,7 @@ func searchObjectsByNameOrDescriptionInTransaction(tx *sqlx.Tx, user models.ODUs
 	response.PageCount = GetPageCount(response.TotalRows, response.PageSize)
 	// Load full meta, properties, and permissions
 	for i := 0; i < len(response.Objects); i++ {
-		obj, err := getObjectInTransaction(tx, response.Objects[i], loadPermissions, loadProperties)
+		obj, err := getObjectInTransaction(dao, tx, response.Objects[i], loadPermissions, loadProperties)
 		if err != nil {
 			return response, err
 		}
@@ -416,8 +416,8 @@ func MySQLSafeString2(i string) string {
 	return o
 }
 
-func buildFilterRequireObjectsGroupOwns(tx *sqlx.Tx, groupGranteeName string) string {
-	acmGrantee, err := getAcmGranteeInTransaction(tx, groupGranteeName)
+func buildFilterRequireObjectsGroupOwns(dao *DataAccessLayer, tx *sqlx.Tx, groupGranteeName string) string {
+	acmGrantee, err := getAcmGranteeInTransaction(dao, tx, groupGranteeName)
 	where := " and "
 	if err != nil {
 		// If there are no grantees matching this group, then no objects owned by it. Exclude everything
@@ -527,26 +527,26 @@ func buildFilterRequireObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) st
 	return " and o.ownedbyid in (-1," + strings.Join(getACMValuesForUser(tx, user, "f_share"), ",") + ")"
 }
 
-func buildListObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) []string {
-	ownedby := []string{}
-	ownedby = append(ownedby, "'user/"+MySQLSafeString2(user.DistinguishedName)+"'")
-	ownedby = append(ownedby, buildListObjectsMyGroupOwns(tx, user)...)
-	return ownedby
-}
+// func buildListObjectsIOrMyGroupsOwn(tx *sqlx.Tx, user models.ODUser) []string {
+// 	ownedby := []string{}
+// 	ownedby = append(ownedby, "'user/"+MySQLSafeString2(user.DistinguishedName)+"'")
+// 	ownedby = append(ownedby, buildListObjectsMyGroupOwns(tx, user)...)
+// 	return ownedby
+// }
 
-func buildListObjectsMyGroupOwns(tx *sqlx.Tx, user models.ODUser) []string {
-	ownedby := []string{}
-	groups := getGroupsFromSnippets(user)
-	for _, group := range groups {
-		if len(group) > 0 {
-			if acmGrantee, err := getAcmGranteeInTransaction(tx, group); err == nil {
-				resourceName := acmGrantee.ResourceNameRaw()
-				ownedby = append(ownedby, "'"+MySQLSafeString2(resourceName)+"'")
-			}
-		}
-	}
-	return ownedby
-}
+// func buildListObjectsMyGroupOwns(tx *sqlx.Tx, user models.ODUser) []string {
+// 	ownedby := []string{}
+// 	groups := getGroupsFromSnippets(user)
+// 	for _, group := range groups {
+// 		if len(group) > 0 {
+// 			if acmGrantee, err := getAcmGranteeInTransaction(tx, group); err == nil {
+// 				resourceName := acmGrantee.ResourceNameRaw()
+// 				ownedby = append(ownedby, "'"+MySQLSafeString2(resourceName)+"'")
+// 			}
+// 		}
+// 	}
+// 	return ownedby
+// }
 func getGroupsFromSnippets(user models.ODUser) []string {
 	if user.Snippets != nil {
 		for _, rawFields := range user.Snippets.Snippets {

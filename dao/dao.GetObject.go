@@ -21,7 +21,7 @@ func (dao *DataAccessLayer) GetObject(object models.ODObject, loadProperties boo
 		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODObject{}, err
 	}
-	dbObject, err := getObjectInTransaction(tx, object, loadPermissions, loadProperties)
+	dbObject, err := getObjectInTransaction(dao, tx, object, loadPermissions, loadProperties)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			dao.GetLogger().Error("error in getobject", zap.Error(err))
@@ -35,7 +35,7 @@ func (dao *DataAccessLayer) GetObject(object models.ODObject, loadProperties boo
 	return dbObject, err
 }
 
-func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadPermissions, loadProperties bool) (models.ODObject, error) {
+func getObjectInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, object models.ODObject, loadPermissions, loadProperties bool) (models.ODObject, error) {
 	var dbObject models.ODObject
 
 	if len(object.ID) == 0 {
@@ -83,7 +83,7 @@ func getObjectInTransaction(tx *sqlx.Tx, object models.ODObject, loadPermissions
 
 	// Load Permissions
 	if loadPermissions {
-		dbPermissions, dbPermErr := getPermissionsForObjectInTransaction(tx, object)
+		dbPermissions, dbPermErr := getPermissionsForObjectInTransaction(dao, tx, object)
 		dbObject.Permissions = dbPermissions
 		if dbPermErr != nil {
 			err = dbPermErr

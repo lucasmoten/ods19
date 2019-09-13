@@ -3,7 +3,6 @@ package dao
 import (
 	"bitbucket.di2e.net/dime/object-drive-server/metadata/models"
 	"bitbucket.di2e.net/dime/object-drive-server/util"
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -20,21 +19,12 @@ func (dao *DataAccessLayer) GetChildObjectsWithPropertiesByUser(
 		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getChildObjectsWithPropertiesByUserInTransaction(tx, user, pagingRequest, object, loadPermissions, loadProperties)
+	response, err := getChildObjectsByUserInTransaction(dao, tx, user, pagingRequest, object, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("error in getchildobjectswithpropertiesbyuser", zap.Error(err))
 		tx.Rollback()
 	} else {
 		tx.Commit()
-	}
-	return response, err
-}
-
-func getChildObjectsWithPropertiesByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
-
-	response, err := getChildObjectsByUserInTransaction(tx, user, pagingRequest, object, loadPermissions, loadProperties)
-	if err != nil {
-		return response, err
 	}
 	return response, err
 }

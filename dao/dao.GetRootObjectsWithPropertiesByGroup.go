@@ -18,7 +18,7 @@ func (dao *DataAccessLayer) GetRootObjectsWithPropertiesByGroup(groupGranteeName
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getRootObjectsByGroupInTransaction(tx, groupGranteeName, user, pagingRequest, loadPermissions, loadProperties)
+	response, err := getRootObjectsByGroupInTransaction(dao, tx, groupGranteeName, user, pagingRequest, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetRootObjectsWithPropertiesByGroup", zap.Error(err))
 		tx.Rollback()

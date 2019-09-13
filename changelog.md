@@ -25,6 +25,7 @@ FORMAT: 1A
 * DOC: Removed /userstats documentation
 * REF: Disabled /userstats endpoint
 * FIX: Eliminated duplicate call to load properties in list operations
+* ENH: Added cache for acmgrantee data and variable `OD_DB_ACMGRANTEECACHE_LRU_TIME`
 
 ## Release v1.0.22 (August 30, 2019) 52
 ---------------------

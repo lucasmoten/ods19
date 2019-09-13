@@ -15,7 +15,7 @@ import (
 func (dao *DataAccessLayer) IsParentIDADescendent(id []byte, parentID []byte) (bool, error) {
 	defer util.Time("IsParentIDADescendent")()
 	tx := dao.MetadataDB.MustBegin()
-	result, err := isParentIDADescendentInTransaction(tx, id, parentID)
+	result, err := isParentIDADescendentInTransaction(dao, tx, id, parentID)
 	if err != nil {
 		tx.Rollback()
 	} else {
@@ -24,7 +24,7 @@ func (dao *DataAccessLayer) IsParentIDADescendent(id []byte, parentID []byte) (b
 	return result, err
 }
 
-func isParentIDADescendentInTransaction(tx *sqlx.Tx, id []byte, parentID []byte) (bool, error) {
+func isParentIDADescendentInTransaction(dao *DataAccessLayer, tx *sqlx.Tx, id []byte, parentID []byte) (bool, error) {
 	loadPermissions := false
 	loadProperties := false
 	if parentID == nil {
@@ -32,7 +32,7 @@ func isParentIDADescendentInTransaction(tx *sqlx.Tx, id []byte, parentID []byte)
 	}
 	var targetObject models.ODObject
 	targetObject.ID = parentID
-	dbObject, err := getObjectInTransaction(tx, targetObject, loadPermissions, loadProperties)
+	dbObject, err := getObjectInTransaction(dao, tx, targetObject, loadPermissions, loadProperties)
 	if err != nil {
 		return true, err
 	}
@@ -40,5 +40,5 @@ func isParentIDADescendentInTransaction(tx *sqlx.Tx, id []byte, parentID []byte)
 		// circular found
 		return true, nil
 	}
-	return isParentIDADescendentInTransaction(tx, id, dbObject.ParentID)
+	return isParentIDADescendentInTransaction(dao, tx, id, dbObject.ParentID)
 }

@@ -146,6 +146,8 @@ type DatabaseConfiguration struct {
 	MaxOpenConns int64 `yaml:"max_open_conns"`
 	// MaxConnLifetime is the maximum lifetime, in seconds that a connection may be reused
 	MaxConnLifetime int64 `yaml:"max_conn_lifetime"`
+	// AcmGranteeCacheLruTime is the allowable time in seconds to hold a record in LRU Cache
+	AcmGranteeCacheLruTime int64 `yaml:"acmgrantee_lru_time"`
 }
 
 // EventQueueConfiguration configures publishing to the Kafka event queue.
@@ -462,6 +464,7 @@ func NewDatabaseConfigFromEnv(confFile AppConfiguration, opts ValueOpts) Databas
 	dbConf.MaxConnLifetime = cascadeInt(OD_DB_CONNMAXLIFETIME, confFile.DatabaseConnection.MaxConnLifetime, 30)
 	dbConf.DeadlockRetryCounter = cascadeInt(OD_DB_DEADLOCK_RETRYCOUNTER, confFile.DatabaseConnection.DeadlockRetryCounter, 30)
 	dbConf.DeadlockRetryDelay = cascadeInt(OD_DB_DEADLOCK_RETRYDELAYMS, confFile.DatabaseConnection.DeadlockRetryDelay, 55)
+	dbConf.AcmGranteeCacheLruTime = cascadeInt(OD_DB_ACMGRANTEECACHE_LRU_TIME, confFile.DatabaseConnection.AcmGranteeCacheLruTime, 600)
 
 	// Sanity readTimeout
 	if !strings.Contains(dbConf.Params, "readTimeout=") {
@@ -1091,6 +1094,7 @@ func setEnvironmentFromConfiguration(conf AppConfiguration) {
 	os.Setenv(OD_CACHE_PARTITION, conf.CacheSettings.Partition)
 	os.Setenv(OD_CACHE_ROOT, conf.CacheSettings.Root)
 	os.Setenv(OD_CACHE_WALKSLEEP, strconv.FormatInt(conf.CacheSettings.WalkSleep, 10))
+	os.Setenv(OD_DB_ACMGRANTEECACHE_LRU_TIME, strconv.FormatInt(conf.DatabaseConnection.AcmGranteeCacheLruTime, 10))
 	os.Setenv(OD_DB_CA, conf.DatabaseConnection.CAPath)
 	os.Setenv(OD_DB_CERT, conf.DatabaseConnection.ClientCert)
 	os.Setenv(OD_DB_CONN_PARAMS, conf.DatabaseConnection.Params)
