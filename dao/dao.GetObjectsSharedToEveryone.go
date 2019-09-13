@@ -11,12 +11,14 @@ import (
 // GetObjectsSharedToEveryone retrieves a list of Objects that have a permission that is sharing to everyone
 func (dao *DataAccessLayer) GetObjectsSharedToEveryone(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	defer util.Time("GetObjectsSharedToEveryone")()
+	loadProperties := true
+	loadPermissions := true
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getObjectsSharedToEveryoneInTransaction(tx, user, pagingRequest)
+	response, err := getObjectsSharedToEveryoneInTransaction(tx, user, pagingRequest, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetObjectsSharedToEveryone", zap.Error(err))
 		tx.Rollback()
@@ -26,9 +28,7 @@ func (dao *DataAccessLayer) GetObjectsSharedToEveryone(user models.ODUser, pagin
 	return response, err
 }
 
-func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
-	loadProperties := true
-	loadPermissions := true
+func getObjectsSharedToEveryoneInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 
 	// Only include those that are shared to everyone

@@ -13,6 +13,8 @@ import (
 // parent last.
 func (dao *DataAccessLayer) GetParents(child models.ODObject) ([]models.ODObject, error) {
 	defer util.Time("GetParents")()
+	loadPermissions := true // auth checks in getobject depend on this for determiniing redaction of parents in breadcrumbs
+	loadProperties := false
 
 	var parents []models.ODObject
 
@@ -26,7 +28,7 @@ func (dao *DataAccessLayer) GetParents(child models.ODObject) ([]models.ODObject
 		return nil, err
 	}
 	dao.GetLogger().Debug("dao passing  txn into getParentsInTransaction")
-	parents, err = getParentsInTransaction(tx, child)
+	parents, err = getParentsInTransaction(tx, child, loadPermissions, loadProperties)
 	dao.GetLogger().Debug("dao returned txn from getParentsInTransaction")
 	if err != nil {
 		dao.GetLogger().Debug("dao rolling back txn for GetParents")
@@ -41,9 +43,7 @@ func (dao *DataAccessLayer) GetParents(child models.ODObject) ([]models.ODObject
 	return parents, nil
 }
 
-func getParentsInTransaction(tx *sqlx.Tx, child models.ODObject) ([]models.ODObject, error) {
-	loadPermissions := true // auth checks in getobject depend on this for determiniing redaction of parents in breadcrumbs
-	loadProperties := false
+func getParentsInTransaction(tx *sqlx.Tx, child models.ODObject, loadPermissions bool, loadProperties bool) ([]models.ODObject, error) {
 	var parents []models.ODObject
 	var queryObj models.ODObject
 	queryObj.ID = child.ParentID

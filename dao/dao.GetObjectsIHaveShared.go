@@ -15,12 +15,14 @@ import (
 // shared to others
 func (dao *DataAccessLayer) GetObjectsIHaveShared(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	defer util.Time("GetObjectsIHaveShared")()
+	loadPermissions := true
+	loadProperties := true
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getObjectsIHaveSharedInTransaction(tx, user, pagingRequest)
+	response, err := getObjectsIHaveSharedInTransaction(tx, user, pagingRequest, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetObjectsIHaveShared", zap.Error(err))
 		tx.Rollback()
@@ -30,9 +32,7 @@ func (dao *DataAccessLayer) GetObjectsIHaveShared(user models.ODUser, pagingRequ
 	return response, err
 }
 
-func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
-	loadPermissions := true
-	loadProperties := true
+func getObjectsIHaveSharedInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 
 	query := `

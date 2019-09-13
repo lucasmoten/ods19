@@ -24,6 +24,7 @@ FORMAT: 1A
 * ENH: New environment variable to constrain list/search queries `OD_SERVER_MAXPAGESIZE`
 * DOC: Removed /userstats documentation
 * REF: Disabled /userstats endpoint
+* FIX: Eliminated duplicate call to load properties in list operations
 
 ## Release v1.0.22 (August 30, 2019) 52
 ---------------------

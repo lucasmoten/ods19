@@ -12,12 +12,14 @@ import (
 // beneath any other objects natively (natural parentId is null).
 func (dao *DataAccessLayer) GetRootObjects(pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	defer util.Time("GetRootObjects")()
+	loadProperties := true
+	loadPermissions := true
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getRootObjectsInTransaction(tx, pagingRequest)
+	response, err := getRootObjectsInTransaction(tx, pagingRequest, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetRootObjects", zap.Error(err))
 		tx.Rollback()
@@ -27,9 +29,7 @@ func (dao *DataAccessLayer) GetRootObjects(pagingRequest PagingRequest) (models.
 	return response, err
 }
 
-func getRootObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
-	loadProperties := true
-	loadPermissions := true
+func getRootObjectsInTransaction(tx *sqlx.Tx, pagingRequest PagingRequest, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	query := `
     select 

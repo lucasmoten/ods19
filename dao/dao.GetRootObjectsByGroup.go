@@ -13,12 +13,14 @@ import (
 // are owned by the specified group.
 func (dao *DataAccessLayer) GetRootObjectsByGroup(groupGranteeName string, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	defer util.Time("GetRootObjectsByGroup")()
+	loadProperties := false
+	loadPermissions := false
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getRootObjectsByGroupInTransaction(tx, groupGranteeName, user, pagingRequest)
+	response, err := getRootObjectsByGroupInTransaction(tx, groupGranteeName, user, pagingRequest, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetRootObjectsByGroup", zap.Error(err))
 		tx.Rollback()
@@ -28,9 +30,7 @@ func (dao *DataAccessLayer) GetRootObjectsByGroup(groupGranteeName string, user 
 	return response, err
 }
 
-func getRootObjectsByGroupInTransaction(tx *sqlx.Tx, groupGranteeName string, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
-	loadProperties := false
-	loadPermissions := false
+func getRootObjectsByGroupInTransaction(tx *sqlx.Tx, groupGranteeName string, user models.ODUser, pagingRequest PagingRequest, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	// NOTE: While this looks similar to GetChildObjectsByUser there is more at
 	// stake here as there is the requirement that the object permission grantee

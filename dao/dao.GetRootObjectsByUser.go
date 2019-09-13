@@ -13,12 +13,14 @@ import (
 // are owned by the specified user.
 func (dao *DataAccessLayer) GetRootObjectsByUser(user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
 	defer util.Time("GetRootObjectsByUser")()
+	loadProperties := true
+	loadPermissions := true
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getRootObjectsByUserInTransaction(tx, user, pagingRequest)
+	response, err := getRootObjectsByUserInTransaction(tx, user, pagingRequest, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetRootObjectsByUser", zap.Error(err))
 		tx.Rollback()
@@ -28,9 +30,7 @@ func (dao *DataAccessLayer) GetRootObjectsByUser(user models.ODUser, pagingReque
 	return response, err
 }
 
-func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest) (models.ODObjectResultset, error) {
-	loadProperties := true
-	loadPermissions := true
+func getRootObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	// NOTE: While this looks similar to GetChildObjectsByUser there is more at
 	// stake here as there is the requirement that the object permission grantee

@@ -13,12 +13,14 @@ import (
 func (dao *DataAccessLayer) GetChildObjectsWithPropertiesByUser(
 	user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	defer util.Time("GetChildObjectsWithPropertiesByUser")()
+	loadPermissions := true
+	loadProperties := true
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getChildObjectsWithPropertiesByUserInTransaction(tx, user, pagingRequest, object)
+	response, err := getChildObjectsWithPropertiesByUserInTransaction(tx, user, pagingRequest, object, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("error in getchildobjectswithpropertiesbyuser", zap.Error(err))
 		tx.Rollback()
@@ -28,18 +30,11 @@ func (dao *DataAccessLayer) GetChildObjectsWithPropertiesByUser(
 	return response, err
 }
 
-func getChildObjectsWithPropertiesByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
+func getChildObjectsWithPropertiesByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
 
-	response, err := getChildObjectsByUserInTransaction(tx, user, pagingRequest, object)
+	response, err := getChildObjectsByUserInTransaction(tx, user, pagingRequest, object, loadPermissions, loadProperties)
 	if err != nil {
 		return response, err
-	}
-	for i := 0; i < len(response.Objects); i++ {
-		properties, err := getPropertiesForObjectInTransaction(tx, response.Objects[i])
-		if err != nil {
-			return response, err
-		}
-		response.Objects[i].Properties = properties
 	}
 	return response, err
 }

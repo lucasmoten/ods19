@@ -12,12 +12,14 @@ import (
 // beneath a specified object by parentID
 func (dao *DataAccessLayer) GetChildObjects(pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	defer util.Time("GetChildObjects")()
+	loadPermissions := true
+	loadProperties := true
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("Could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getChildObjectsInTransaction(tx, pagingRequest, object, true, false)
+	response, err := getChildObjectsInTransaction(tx, pagingRequest, object, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("Error in GetChildObjects", zap.Error(err))
 		tx.Rollback()

@@ -14,12 +14,14 @@ import (
 func (dao *DataAccessLayer) GetChildObjectsByUser(
 	user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
 	defer util.Time("GetChildObjectsByUser")()
+	loadPermissions := true
+	loadProperties := true
 	tx, err := dao.MetadataDB.Beginx()
 	if err != nil {
 		dao.GetLogger().Error("could not begin transaction", zap.Error(err))
 		return models.ODObjectResultset{}, err
 	}
-	response, err := getChildObjectsByUserInTransaction(tx, user, pagingRequest, object)
+	response, err := getChildObjectsByUserInTransaction(tx, user, pagingRequest, object, loadPermissions, loadProperties)
 	if err != nil {
 		dao.GetLogger().Error("error in getchildobjectsbyuser", zap.Error(err))
 		tx.Rollback()
@@ -29,9 +31,7 @@ func (dao *DataAccessLayer) GetChildObjectsByUser(
 	return response, err
 }
 
-func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject) (models.ODObjectResultset, error) {
-	loadPermissions := true
-	loadProperties := true
+func getChildObjectsByUserInTransaction(tx *sqlx.Tx, user models.ODUser, pagingRequest PagingRequest, object models.ODObject, loadPermissions bool, loadProperties bool) (models.ODObjectResultset, error) {
 	response := models.ODObjectResultset{}
 	// NOTE: distinct is unfortunately used here because object_permission
 	// allows multiple records per object and grantee.
